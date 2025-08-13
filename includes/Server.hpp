@@ -6,7 +6,7 @@
 /*   By: soksak <soksak@42istanbul.com.tr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/04 19:23:52 by soksak            #+#    #+#             */
-/*   Updated: 2025/08/04 19:41:33 by soksak           ###   ########.fr       */
+/*   Updated: 2025/08/14 00:02:53 by soksak           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,12 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <exception>
+#include <poll.h>
+#include <vector>
+
+#include "../includes/User.hpp"
+
+#define MAX_CLIENTS 10
 
 class Server
 {
@@ -26,6 +32,15 @@ class Server
 		int serverSocket;
 		int port;
 		sockaddr_in serverAddress;
+
+		// Poll file descriptors for clients
+		pollfd pfds[MAX_CLIENTS + 1];
+		int nfds; // Number of file descriptors in pfds
+
+		// Users
+		std::vector<User> users;
+
+		// Disable copy constructor and assignment operator
 		Server(const Server &other);
 		Server &operator=(const Server &other);
 		Server();

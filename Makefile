@@ -1,5 +1,5 @@
 NAME = ft_irc
-SRCS = main.cpp ./src/Server.cpp
+SRCS = main.cpp ./src/Server.cpp ./src/User.cpp
 COMPILER = c++
 FLAGS = -std=c++98 -Wall -Wextra -Werror -pedantic
 OBJS = $(SRCS:.cpp=.o)

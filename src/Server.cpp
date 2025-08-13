@@ -13,6 +13,9 @@ Server::Server(int &port) : port(port)
 	this->serverAddress.sin_family = AF_INET;
 	this->serverAddress.sin_port = htons(this->port);
 	this->serverAddress.sin_addr.s_addr = INADDR_ANY;
+	this->pfds[0].fd = this->serverSocket;
+	this->pfds[0].events = POLLIN;
+	this->nfds = 1; // Start with server.
 }
 
 void Server::bindAndListen()
@@ -32,12 +35,35 @@ void Server::bindAndListen()
 
 void Server::acceptConnection()
 {
-	int clientSocket = accept(this->serverSocket, NULL, NULL);
-	if (clientSocket < 0)
+	while(1)
 	{
-		throw SocketAcceptFailed();
+		int pollCount = poll(this->pfds, this->nfds, -1);
+		if (pollCount < 0)
+		{
+			throw SocketAcceptFailed();
+		}
+		if (this->pfds[0].revents & POLLIN)
+		{
+			int clientSocket = accept(this->serverSocket, NULL, NULL);
+			if (clientSocket < 0)
+			{
+				throw SocketAcceptFailed();
+			}
+			if (this->nfds >= MAX_CLIENTS)
+			{
+				std::cout << "Max clients reached, rejecting connection." << std::endl;
+				close(clientSocket);
+				continue;
+			}
+			// Creating User Here
+			this->users.push_back(User(clientSocket));
+
+			std::cout << "Client connected: " << clientSocket << std::endl;
+			this->pfds[this->nfds].fd = clientSocket;
+			this->pfds[this->nfds].events = POLLIN;
+			this->nfds++;
+		}
 	}
-	std::cout << "Client connected." << std::endl;
 }
 
 Server::~Server()
