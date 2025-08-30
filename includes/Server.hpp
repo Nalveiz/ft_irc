@@ -19,28 +19,46 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <exception>
+#include <vector>
+#include <map>
+#include <poll.h>
+#include <sstream>
+#include "Client.hpp"
+#include "Commands.hpp"
 
 class Server
 {
 	private:
 		int serverSocket;
 		int port;
+		std::string password;
 		sockaddr_in serverAddress;
+		std::map<int, Client*> clients;
+		std::vector<pollfd> poll_fds;
+
+		// Private copy constructor and assignment operator
 		Server(const Server &other);
 		Server &operator=(const Server &other);
 		Server();
 	public:
 		// Constructor and Destructor
-		Server(int &port);
+		Server(int &port, const std::string &password);
 		~Server();
 
-		// Methods
-		void acceptConnection();
+		// Main server methods
 		void bindAndListen();
+		void runServer();
+
+		// Client management
+		void addClient(int client_fd);
+		void removeClient(int client_fd);
+		void handleClientData(int client_fd);
+		void sendToClient(int client_fd, const std::string &message);
 
 		// Getters
 		int getServerSocket() const;
 		int getPort() const;
+		const std::string& getPassword() const;
 
 		// Exceptions
 		class SocketCreationFailed : public std::exception

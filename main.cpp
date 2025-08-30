@@ -18,7 +18,6 @@ int checkPort(const std::string &portStr)
 	int port;
 	std::string castedString(portStr);
 
-	// Check if the port is a valid integer and within the range
 	if (castedString.empty())
 	{
 		throw std::invalid_argument("Port cannot be empty.");
@@ -32,7 +31,6 @@ int checkPort(const std::string &portStr)
 		}
 	}
 
-	// Hmm, now here i need to convert to int.
 	std::stringstream ss(portStr);
 	ss >> port;
 	if (port < 1024 || port > 65535)
@@ -44,18 +42,20 @@ int checkPort(const std::string &portStr)
 
 int main(int argc, char *argv[])
 {
-	if (argc != 2)
+	if (argc != 3)
 	{
-		std::cerr << "Usage: " << argv[0] << " <port>" << std::endl;
+		std::cerr << "Usage: " << argv[0] << " <port> <password>" << std::endl;
 		return 1;
 	}
 
 	try
 	{
 		int port = checkPort(argv[1]);
-		Server server(port);
+		std::string password = argv[2];
+
+		Server server(port, password);
 		server.bindAndListen();
-		server.acceptConnection();
+		server.runServer();  
 	}
 	catch (const std::exception &e)
 	{
