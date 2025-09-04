@@ -21,6 +21,7 @@ Server::Server(int &port, const std::string &password) : port(port), password(pa
 	this->serverAddress.sin_family = AF_INET;
 	this->serverAddress.sin_port = htons(this->port);
 	this->serverAddress.sin_addr.s_addr = INADDR_ANY;
+	setNonBlocking(this->serverSocket);
 
 	// Add server socket to poll_fds
 	pollfd server_pollfd;
@@ -75,32 +76,76 @@ void Server::runServer()
 				else
 				{
 					// Existing client data
-					handleClientData(poll_fds[i].fd);
+					handleClientData(poll_fds[i]);
+				}
+				if (poll_fds[i].revents & POLLOUT)
+				{
+					// Find the client
+					std::map<int, Client *>::iterator it = clients.find(poll_fds[i].fd);
+					if (it != clients.end())
+					{
+						Client *client = it->second;
+
+						// Process complete IRC messages (ending with \r\n)
+						std::string &readBuffer = client->getReadBuffer();
+						size_t pos = 0;
+
+						while ((pos = readBuffer.find("\r\n")) != std::string::npos)
+						{
+							std::string message = readBuffer.substr(0, pos);
+							readBuffer.erase(0, pos + 2);
+
+							if (!message.empty())
+							{
+								IRCMessage ircMsg = CommandParser::parseMessage(message);
+								Commands::executeCommand(this, client, ircMsg);
+							}
+						}
+						poll_fds[i].events &= ~POLLOUT;
+					}
 				}
 			}
 		}
 	}
 }
 
+void Server::setNonBlocking(int fd)
+{
+	if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1)
+	{
+		throw NonBlockingFailed();
+	}
+}
+
 void Server::addClient(int client_fd)
 {
-	Client* newClient = new Client(client_fd);
-	clients[client_fd] = newClient;
+	try
+	{
+		setNonBlocking(client_fd);
 
-	// Add to poll_fds
-	pollfd client_pollfd;
-	client_pollfd.fd = client_fd;
-	client_pollfd.events = POLLIN;
-	client_pollfd.revents = 0;
-	poll_fds.push_back(client_pollfd);
+		Client *newClient = new Client(client_fd);
+		clients[client_fd] = newClient;
 
-	std::cout << "New client connected: " << client_fd << std::endl;
+		// Add to poll_fds
+		pollfd client_pollfd;
+		client_pollfd.fd = client_fd;
+		client_pollfd.events = POLLIN;
+		client_pollfd.revents = 0;
+		poll_fds.push_back(client_pollfd);
+
+		std::cout << "New client connected: " << client_fd << std::endl;
+	}
+	catch (const std::exception &e)
+	{
+		std::cerr << "Error adding client: " << client_fd << " - " << e.what() << '\n';
+		return;
+	}
 }
 
 void Server::removeClient(int client_fd)
 {
 	// Remove from clients map
-	std::map<int, Client*>::iterator it = clients.find(client_fd);
+	std::map<int, Client *>::iterator it = clients.find(client_fd);
 	if (it != clients.end())
 	{
 		delete it->second;
@@ -121,43 +166,33 @@ void Server::removeClient(int client_fd)
 	std::cout << "Client disconnected: " << client_fd << std::endl;
 }
 
-void Server::handleClientData(int client_fd)
+void Server::handleClientData(pollfd &clientPfd)
 {
 	char buffer[1024];
-	ssize_t bytes_read = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+	ssize_t bytes_read = recv(clientPfd.fd, buffer, sizeof(buffer) - 1, 0);
 
 	if (bytes_read <= 0)
 	{
 		// Client disconnected
-		removeClient(client_fd);
+		removeClient(clientPfd.fd);
 		return;
 	}
 
 	buffer[bytes_read] = '\0';
-	std::cout << "Received from client " << client_fd << ": " << buffer << std::endl;
+	std::cout << "Received from client " << clientPfd.fd << ": " << buffer << std::endl;
 
 	// Find the client
-	std::map<int, Client*>::iterator it = clients.find(client_fd);
+	std::map<int, Client *>::iterator it = clients.find(clientPfd.fd);
 	if (it != clients.end())
 	{
-		Client* client = it->second;
+		Client *client = it->second;
 		client->appendToReadBuffer(std::string(buffer));
 
 		// Process complete IRC messages (ending with \r\n)
-		std::string& readBuffer = client->getReadBuffer();
-		size_t pos = 0;
-
-		while ((pos = readBuffer.find("\r\n")) != std::string::npos)
+		std::string &readBuffer = client->getReadBuffer();
+		if ((readBuffer.find("\r\n")) != std::string::npos)
 		{
-			std::string message = readBuffer.substr(0, pos);
-			readBuffer.erase(0, pos + 2);
-
-			if (!message.empty())
-			{
-				// Parse and execute IRC command
-				IRCMessage ircMsg = CommandParser::parseMessage(message);
-				Commands::executeCommand(this, client, ircMsg);
-			}
+			clientPfd.events |= POLLOUT;
 		}
 	}
 }
@@ -170,7 +205,7 @@ void Server::sendToClient(int client_fd, const std::string &message)
 Server::~Server()
 {
 	// Clean up all clients
-	for (std::map<int, Client*>::iterator it = clients.begin(); it != clients.end(); ++it)
+	for (std::map<int, Client *>::iterator it = clients.begin(); it != clients.end(); ++it)
 	{
 		delete it->second;
 	}
@@ -190,7 +225,7 @@ int Server::getPort() const
 	return this->port;
 }
 
-const std::string& Server::getPassword() const
+const std::string &Server::getPassword() const
 {
 	return this->password;
 }
@@ -213,4 +248,9 @@ const char *Server::SocketListenFailed::what() const throw()
 const char *Server::SocketAcceptFailed::what() const throw()
 {
 	return "Socket accept failed.";
+}
+
+const char *Server::NonBlockingFailed::what() const throw()
+{
+	return "Setting non-blocking mode failed.";
 }

@@ -24,6 +24,7 @@
 #include <poll.h>
 #include <sstream>
 #include "Client.hpp"
+#include <fcntl.h>
 #include "Commands.hpp"
 
 class Server
@@ -50,9 +51,10 @@ class Server
 		void runServer();
 
 		// Client management
+		void setNonBlocking(int fd);
 		void addClient(int client_fd);
 		void removeClient(int client_fd);
-		void handleClientData(int client_fd);
+		void handleClientData(pollfd &clientPfd);
 		void sendToClient(int client_fd, const std::string &message);
 
 		// Getters
@@ -80,6 +82,12 @@ class Server
 		};
 
 		class SocketAcceptFailed : public std::exception
+		{
+			public:
+				const char *what() const throw();
+		};
+
+		class NonBlockingFailed : public std::exception
 		{
 			public:
 				const char *what() const throw();
