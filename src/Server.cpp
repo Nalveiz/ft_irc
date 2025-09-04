@@ -78,31 +78,31 @@ void Server::runServer()
 					// Existing client data
 					handleClientData(poll_fds[i]);
 				}
-				if (poll_fds[i].revents & POLLOUT)
+			}
+			if (poll_fds[i].revents & POLLOUT)
+			{
+				// Find the client
+				std::map<int, Client *>::iterator it = clients.find(poll_fds[i].fd);
+				if (it != clients.end())
 				{
-					// Find the client
-					std::map<int, Client *>::iterator it = clients.find(poll_fds[i].fd);
-					if (it != clients.end())
+					Client *client = it->second;
+
+					// Process complete IRC messages (ending with \r\n)
+					std::string &readBuffer = client->getReadBuffer();
+					size_t pos = 0;
+
+					while ((pos = readBuffer.find("\r\n")) != std::string::npos)
 					{
-						Client *client = it->second;
+						std::string message = readBuffer.substr(0, pos);
+						readBuffer.erase(0, pos + 2);
 
-						// Process complete IRC messages (ending with \r\n)
-						std::string &readBuffer = client->getReadBuffer();
-						size_t pos = 0;
-
-						while ((pos = readBuffer.find("\r\n")) != std::string::npos)
+						if (!message.empty())
 						{
-							std::string message = readBuffer.substr(0, pos);
-							readBuffer.erase(0, pos + 2);
-
-							if (!message.empty())
-							{
-								IRCMessage ircMsg = CommandParser::parseMessage(message);
-								Commands::executeCommand(this, client, ircMsg);
-							}
+							IRCMessage ircMsg = CommandParser::parseMessage(message);
+							Commands::executeCommand(this, client, ircMsg);
 						}
-						poll_fds[i].events &= ~POLLOUT;
 					}
+					poll_fds[i].events &= ~POLLOUT;
 				}
 			}
 		}
