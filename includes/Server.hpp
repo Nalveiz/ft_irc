@@ -25,7 +25,9 @@
 #include <sstream>
 #include "Client.hpp"
 #include <fcntl.h>
-#include "Commands.hpp"
+#include "IRCMessage.hpp"
+#include "CommandParser.hpp"
+#include "CommandExecuter.hpp"
 
 class Server
 {

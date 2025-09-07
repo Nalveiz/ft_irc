@@ -15,6 +15,7 @@
 
 #include <string>
 #include <iostream>
+#include <fcntl.h>
 
 class Client
 {

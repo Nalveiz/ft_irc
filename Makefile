@@ -1,5 +1,5 @@
 NAME = ft_irc
-SRCS = main.cpp ./src/Server.cpp ./src/Client.cpp ./src/Commands.cpp
+SRCS = main.cpp ./src/Server.cpp ./src/Client.cpp ./src/CommandParser.cpp ./src/CommandExecuter.cpp ./src/IRCMessage.cpp
 COMPILER = c++
 FLAGS = -std=c++98 -Wall -Wextra -Werror -pedantic
 OBJS = $(SRCS:.cpp=.o)

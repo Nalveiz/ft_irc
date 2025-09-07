@@ -44,6 +44,7 @@ const std::string& Client::getRealname() const
 	return _realname;
 }
 
+
 std::string& Client::getReadBuffer()
 {
 	return _readBuffer;

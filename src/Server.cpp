@@ -81,28 +81,22 @@ void Server::runServer()
 			}
 			if (poll_fds[i].revents & POLLOUT)
 			{
-				// Find the client
-				std::map<int, Client *>::iterator it = clients.find(poll_fds[i].fd);
-				if (it != clients.end())
+				if (poll_fds[i].fd != serverSocket)
 				{
-					Client *client = it->second;
-
-					// Process complete IRC messages (ending with \r\n)
-					std::string &readBuffer = client->getReadBuffer();
-					size_t pos = 0;
-
-					while ((pos = readBuffer.find("\r\n")) != std::string::npos)
+					// Send data to client
+					std::map<int, Client *>::iterator it = clients.find(poll_fds[i].fd);
+					if (it != clients.end())
 					{
-						std::string message = readBuffer.substr(0, pos);
-						readBuffer.erase(0, pos + 2);
-
-						if (!message.empty())
+						Client *client = it->second;
+						std::string &sendBuffer = client->getSendBuffer();
+						if (!sendBuffer.empty())
 						{
-							IRCMessage ircMsg = CommandParser::parseMessage(message);
-							Commands::executeCommand(this, client, ircMsg);
+							std::cout << "Sending to client " << client->getClientFd() << ": " << sendBuffer << std::endl;
+							sendToClient(client->getClientFd(), sendBuffer);
+							client->clearSendBuffer();
 						}
+						poll_fds[i].events &= ~POLLOUT; // Clear POLLOUT until there's more data to send
 					}
-					poll_fds[i].events &= ~POLLOUT;
 				}
 			}
 		}
@@ -187,11 +181,20 @@ void Server::handleClientData(pollfd &clientPfd)
 	{
 		Client *client = it->second;
 		client->appendToReadBuffer(std::string(buffer));
-
 		// Process complete IRC messages (ending with \r\n)
 		std::string &readBuffer = client->getReadBuffer();
-		if ((readBuffer.find("\r\n")) != std::string::npos)
+		size_t pos = 0;
+
+		while ((pos = readBuffer.find("\r\n")) != std::string::npos)
 		{
+			std::string message = readBuffer.substr(0, pos);
+			readBuffer.erase(0, pos + 2);
+
+			if (!message.empty())
+			{
+				IRCMessage ircMsg = CommandParser::parseMessage(message);
+				CommandExecuter::executeCommand(this, client, ircMsg);
+			}
 			clientPfd.events |= POLLOUT;
 		}
 	}

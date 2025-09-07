@@ -13,6 +13,9 @@
 #ifndef COMMANDS_HPP
 #define COMMANDS_HPP
 
+#include "Server.hpp"
+#include "Client.hpp"
+#include "IRCMessage.hpp"
 #include <string>
 #include <vector>
 
@@ -20,27 +23,9 @@
 class Server;
 class Client;
 
-// IRC Command structure
-struct IRCMessage
-{
-    std::string prefix;
-    std::string command;
-    std::vector<std::string> params;
-    std::string trailing;
-
-    IRCMessage() {}
-};
-
-class CommandParser
-{
-    public:
-        static IRCMessage parseMessage(const std::string& message);
-        static std::vector<std::string> splitString(const std::string& str, char delimiter);
-        static std::string trim(const std::string& str);
-};
 
 // Command handlers
-class Commands
+class CommandExecuter
 {
     public:
         static void executeCommand(Server* server, Client* client, const IRCMessage& msg);
@@ -55,8 +40,9 @@ class Commands
 
         // Helper functions
         static void sendWelcome(Server* server, Client* client);
-        static void sendReply(Server* server, Client* client, const std::string& reply);
+        static void writeClientSendBuffer(Server* server, Client* client, const std::string& reply);
 };
+
 
 // IRC Numeric replies
 #define RPL_WELCOME(nick) (std::string(":localhost 001 ") + nick + " :Welcome to the IRC Network " + nick + "!\r\n")
