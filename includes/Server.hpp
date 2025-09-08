@@ -28,6 +28,7 @@
 #include "IRCMessage.hpp"
 #include "CommandParser.hpp"
 #include "CommandExecuter.hpp"
+#include "Channel.hpp"
 
 class Server
 {
@@ -37,6 +38,7 @@ class Server
 		std::string password;
 		sockaddr_in serverAddress;
 		std::map<int, Client*> clients;
+		std::map<std::string, Channel*> channels;
 		std::vector<pollfd> poll_fds;
 
 		// Private copy constructor and assignment operator
@@ -58,11 +60,20 @@ class Server
 		void removeClient(int client_fd);
 		void handleClientData(pollfd &clientPfd);
 		void sendToClient(int client_fd, const std::string &message);
+		void markClientForSending(int client_fd);
 
 		// Getters
 		int getServerSocket() const;
 		int getPort() const;
 		const std::string& getPassword() const;
+		std::map<int, Client*>& getClients();
+		std::map<std::string, Channel*>& getChannels();
+
+		// Channel management
+		Channel* createChannel(const std::string& name);
+		Channel* getChannel(const std::string& name);
+		void removeChannel(const std::string& name);
+		Client* getClientByNickname(const std::string& nickname);
 
 		// Exceptions
 		class SocketCreationFailed : public std::exception

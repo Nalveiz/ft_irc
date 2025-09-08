@@ -39,7 +39,7 @@ void Server::bindAndListen()
 		throw SocketBindFailed();
 	}
 	// listen is gonna change this is the test..
-	if (listen(this->serverSocket, 5) < 0)
+	if (listen(this->serverSocket, SOMAXCONN) < 0)
 	{
 		throw SocketListenFailed();
 	}
@@ -205,8 +205,28 @@ void Server::sendToClient(int client_fd, const std::string &message)
 	send(client_fd, message.c_str(), message.length(), 0);
 }
 
+void Server::markClientForSending(int client_fd)
+{
+	// Find the client's pollfd and mark it for sending
+	for (size_t i = 0; i < poll_fds.size(); ++i)
+	{
+		if (poll_fds[i].fd == client_fd)
+		{
+			poll_fds[i].events |= POLLOUT;
+			break;
+		}
+	}
+}
+
 Server::~Server()
 {
+	// Clean up all channels
+	for (std::map<std::string, Channel *>::iterator it = channels.begin(); it != channels.end(); ++it)
+	{
+		delete it->second;
+	}
+	channels.clear();
+
 	// Clean up all clients
 	for (std::map<int, Client *>::iterator it = clients.begin(); it != clients.end(); ++it)
 	{
@@ -231,6 +251,56 @@ int Server::getPort() const
 const std::string &Server::getPassword() const
 {
 	return this->password;
+}
+
+std::map<int, Client*>& Server::getClients()
+{
+	return this->clients;
+}
+
+std::map<std::string, Channel*>& Server::getChannels()
+{
+	return this->channels;
+}
+
+Channel* Server::createChannel(const std::string& name)
+{
+	if (channels.find(name) != channels.end())
+		return channels[name]; // Channel already exists
+
+	Channel* newChannel = new Channel(name);
+	channels[name] = newChannel;
+	std::cout << "Channel " << name << " created" << std::endl;
+	return newChannel;
+}
+
+Channel* Server::getChannel(const std::string& name)
+{
+	std::map<std::string, Channel*>::iterator it = channels.find(name);
+	if (it != channels.end())
+		return it->second;
+	return NULL;
+}
+
+void Server::removeChannel(const std::string& name)
+{
+	std::map<std::string, Channel*>::iterator it = channels.find(name);
+	if (it != channels.end())
+	{
+		delete it->second;
+		channels.erase(it);
+		std::cout << "Channel " << name << " removed" << std::endl;
+	}
+}
+
+Client* Server::getClientByNickname(const std::string& nickname)
+{
+	for (std::map<int, Client*>::iterator it = clients.begin(); it != clients.end(); ++it)
+	{
+		if (it->second->getNickname() == nickname)
+			return it->second;
+	}
+	return NULL;
 }
 
 const char *Server::SocketCreationFailed::what() const throw()

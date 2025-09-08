@@ -6,7 +6,7 @@
 /*   By: soksak <soksak@42istanbul.com.tr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/04 00:19:22 by soksak            #+#    #+#             */
-/*   Updated: 2025/09/04 00:19:22 by soksak           ###   ########.fr       */
+/*   Updated: 2025/09/07 22:21:02 by soksak           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,6 +55,7 @@ public:
 
 	// Broadcast
 	void broadcast(const std::string &message, int exceptFd = -1);
+	void broadcast(const std::string &message, class Server* server, int exceptFd = -1);
 };
 
 #endif
