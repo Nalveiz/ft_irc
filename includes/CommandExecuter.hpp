@@ -53,6 +53,8 @@ class CommandExecuter
         // Channel management commands
         static void handleJOIN(Server* server, Client* client, const IRCMessage& msg);
         static void handlePART(Server* server, Client* client, const IRCMessage& msg);
+        static void handleKICK(Server* server, Client* client, const IRCMessage& msg);
+        static void handleINVITE(Server* server, Client* client, const IRCMessage& msg);
 
         // Communication commands
         static void handlePRIVMSG(Server* server, Client* client, const IRCMessage& msg);
@@ -68,11 +70,6 @@ class CommandExecuter
         static bool isNicknameInUse(Server* server, const std::string& nickname, int excludeFd = -1);
         static bool isValidChannelName(const std::string& channelName);
         static void sendChannelUserList(Server* server, Client* client, Channel* channel);
-
-        // IRC message generators
-        static std::string createNamReplyMsg(const std::string& nick, const std::string& channel, const std::string& names);
-        static std::string createEndOfNamesMsg(const std::string& nick, const std::string& channel);
-        static std::string createPartMsg(const std::string& nick, const std::string& user, const std::string& host, const std::string& channel, const std::string& reason);
 
     private:
         // Private constructor - this is a utility class with static methods only

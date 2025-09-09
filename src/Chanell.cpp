@@ -6,7 +6,7 @@
 /*   By: soksak <soksak@42istanbul.com.tr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/04 00:19:13 by soksak            #+#    #+#             */
-/*   Updated: 2025/09/07 22:21:02 by soksak           ###   ########.fr       */
+/*   Updated: 2025/09/09 19:24:31 by soksak           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -123,17 +123,6 @@ void Channel::setUserLimit(size_t limit)
 void Channel::setInviteOnly(bool invite)
 {
     _inviteOnly = invite;
-}
-
-void Channel::broadcast(const std::string &message, int exceptFd)
-{
-    for (std::map<int, Client*>::iterator it = _users.begin(); it != _users.end(); ++it)
-    {
-        if (it->first != exceptFd)
-        {
-            it->second->appendToSendBuffer(message);
-        }
-    }
 }
 
 void Channel::broadcast(const std::string &message, Server* server, int exceptFd)

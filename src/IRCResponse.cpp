@@ -79,6 +79,34 @@ std::string IRCResponse::createErrorCannotSendToChan(const std::string& nick, co
     return oss.str();
 }
 
+std::string IRCResponse::createErrorChanOPrivsNeeded(const std::string& nick, const std::string& channel)
+{
+    std::ostringstream oss;
+    oss << ":server 482 " << nick << " " << channel << " :You're not channel operator\r\n";
+    return oss.str();
+}
+
+std::string IRCResponse::createErrorUserNotInChannel(const std::string& nick, const std::string& target, const std::string& channel)
+{
+    std::ostringstream oss;
+    oss << ":server 441 " << nick << " " << target << " " << channel << " :They aren't on that channel\r\n";
+    return oss.str();
+}
+
+std::string IRCResponse::createErrorUserOnChannel(const std::string& nick, const std::string& target, const std::string& channel)
+{
+    std::ostringstream oss;
+    oss << ":server 443 " << nick << " " << target << " " << channel << " :is already on channel\r\n";
+    return oss.str();
+}
+
+std::string IRCResponse::createErrorInviteOnlyChannel(const std::string& nick, const std::string& channel)
+{
+    std::ostringstream oss;
+    oss << ":server 473 " << nick << " " << channel << " :Cannot join channel (+i)\r\n";
+    return oss.str();
+}
+
 // Success responses
 std::string IRCResponse::createWelcome(const std::string& nick, const std::string& user, const std::string& host)
 {
@@ -126,5 +154,47 @@ std::string IRCResponse::createPart(const std::string& nick, const std::string& 
 {
     std::ostringstream oss;
     oss << ":" << nick << "!" << user << "@" << host << " PART " << channel << "\r\n";
+    return oss.str();
+}
+
+std::string IRCResponse::createKick(const std::string& nick, const std::string& user, const std::string& host, const std::string& channel, const std::string& target, const std::string& reason)
+{
+    std::ostringstream oss;
+    oss << ":" << nick << "!" << user << "@" << host << " KICK " << channel << " " << target << " :" << reason << "\r\n";
+    return oss.str();
+}
+
+std::string IRCResponse::createNamReply(const std::string& nick, const std::string& channel, const std::string& names)
+{
+    std::ostringstream oss;
+    oss << ":server 353 " << nick << " = " << channel << " :" << names << "\r\n";
+    return oss.str();
+}
+
+std::string IRCResponse::createEndOfNames(const std::string& nick, const std::string& channel)
+{
+    std::ostringstream oss;
+    oss << ":server 366 " << nick << " " << channel << " :End of /NAMES list\r\n";
+    return oss.str();
+}
+
+std::string IRCResponse::createPartWithReason(const std::string& nick, const std::string& user, const std::string& host, const std::string& channel, const std::string& reason)
+{
+    std::ostringstream oss;
+    oss << ":" << nick << "!" << user << "@" << host << " PART " << channel << " :" << reason << "\r\n";
+    return oss.str();
+}
+
+std::string IRCResponse::createInvite(const std::string& nick, const std::string& user, const std::string& host, const std::string& target, const std::string& channel)
+{
+    std::ostringstream oss;
+    oss << ":" << nick << "!" << user << "@" << host << " INVITE " << target << " " << channel << "\r\n";
+    return oss.str();
+}
+
+std::string IRCResponse::createInviting(const std::string& nick, const std::string& target, const std::string& channel)
+{
+    std::ostringstream oss;
+    oss << ":server 341 " << nick << " " << target << " " << channel << "\r\n";
     return oss.str();
 }

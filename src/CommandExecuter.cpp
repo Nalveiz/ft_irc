@@ -6,7 +6,7 @@
 /*   By: soksak <soksak@42istanbul.com.tr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/07 19:25:45 by soksak            #+#    #+#             */
-/*   Updated: 2025/09/07 23:20:57 by soksak           ###   ########.fr       */
+/*   Updated: 2025/09/09 19:56:41 by soksak           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,6 +69,10 @@ void CommandExecuter::executeCommand(Server* server, Client* client, const IRCMe
         handleJOIN(server, client, msg);
     else if (cmd == "PART")
         handlePART(server, client, msg);
+    else if (cmd == "KICK")
+        handleKICK(server, client, msg);
+    else if (cmd == "INVITE")
+        handleINVITE(server, client, msg);
     else if (cmd == "PRIVMSG")
         handlePRIVMSG(server, client, msg);
     else if (cmd == "CAP")
@@ -401,24 +405,8 @@ void CommandExecuter::sendChannelUserList(Server* server, Client* client, Channe
     }
 
     // Send NAMES reply
-    writeClientSendBuffer(server, client, createNamReplyMsg(client->getNickname(), channel->getName(), namesList));
-    writeClientSendBuffer(server, client, createEndOfNamesMsg(client->getNickname(), channel->getName()));
-}
-
-// IRC Message Generator Functions
-std::string CommandExecuter::createNamReplyMsg(const std::string& nick, const std::string& channel, const std::string& names)
-{
-    return ":localhost 353 " + nick + " = " + channel + " :" + names + "\r\n";
-}
-
-std::string CommandExecuter::createEndOfNamesMsg(const std::string& nick, const std::string& channel)
-{
-    return ":localhost 366 " + nick + " " + channel + " :End of /NAMES list\r\n";
-}
-
-std::string CommandExecuter::createPartMsg(const std::string& nick, const std::string& user, const std::string& host, const std::string& channel, const std::string& reason)
-{
-    return ":" + nick + "!" + user + "@" + host + " PART " + channel + " :" + reason + "\r\n";
+    writeClientSendBuffer(server, client, IRCResponse::createNamReply(client->getNickname(), channel->getName(), namesList));
+    writeClientSendBuffer(server, client, IRCResponse::createEndOfNames(client->getNickname(), channel->getName()));
 }
 
 /**
@@ -477,7 +465,7 @@ void CommandExecuter::handleJOIN(Server* server, Client* client, const IRCMessag
     {
         // Send JOIN message to all users in channel (including the joining user)
         std::string joinMsg = IRCResponse::createJoin(client->getNickname(), client->getUsername(), "localhost", channelName);
-        channel->broadcast(joinMsg, server);
+        channel->broadcast(joinMsg, server, -1); // Send to all users in channel
 
         // Send channel user list (NAMES reply)
         sendChannelUserList(server, client, channel);
@@ -521,7 +509,7 @@ void CommandExecuter::handlePART(Server* server, Client* client, const IRCMessag
 
     // Send PART message to all users in channel
     std::string partMsg = IRCResponse::createPart(client->getNickname(), client->getUsername(), "localhost", channelName);
-    channel->broadcast(partMsg, server);
+    channel->broadcast(partMsg, server, -1); // Send to all users in channel
 
     // Remove user from channel
     channel->removeUser(client->getClientFd());
@@ -542,6 +530,145 @@ void CommandExecuter::handlePART(Server* server, Client* client, const IRCMessag
     {
         server->removeChannel(channelName);
     }
+}
+
+void CommandExecuter::handleKICK(Server* server, Client* client, const IRCMessage& msg)
+{
+    if (!client->isRegistered())
+    {
+        writeClientSendBuffer(server, client, IRCResponse::createErrorNotRegistered(client->getNickname()));
+        return;
+    }
+
+    if (msg.getParams().size() < 2)
+    {
+        writeClientSendBuffer(server, client, IRCResponse::createErrorNeedMoreParams(client->getNickname(), "KICK"));
+        return;
+    }
+
+    std::string channelName = msg.getParams()[0];
+    std::string targetNick = msg.getParams()[1];
+    std::string reason = msg.getTrailing().empty() ? "No reason given" : msg.getTrailing();
+
+    Channel* channel = server->getChannel(channelName);
+    if (!channel)
+    {
+        writeClientSendBuffer(server, client, IRCResponse::createErrorNoSuchChannel(client->getNickname(), channelName));
+        return;
+    }
+
+    // Check if kicker is in the channel
+    if (!channel->isUserInChannel(client->getClientFd()))
+    {
+        writeClientSendBuffer(server, client, IRCResponse::createErrorNotOnChannel(client->getNickname(), channelName));
+        return;
+    }
+
+    // Check if kicker is an operator
+    if (!channel->isOperator(client->getClientFd()))
+    {
+        writeClientSendBuffer(server, client, IRCResponse::createErrorChanOPrivsNeeded(client->getNickname(), channelName));
+        return;
+    }
+
+    // Find target user
+    Client* targetClient = server->getClientByNickname(targetNick);
+    if (!targetClient)
+    {
+        writeClientSendBuffer(server, client, IRCResponse::createErrorNoSuchNick(client->getNickname(), targetNick));
+        return;
+    }
+
+    // Check if target is in the channel
+    if (!channel->isUserInChannel(targetClient->getClientFd()))
+    {
+        writeClientSendBuffer(server, client, IRCResponse::createErrorUserNotInChannel(client->getNickname(), targetNick, channelName));
+        return;
+    }
+
+    // Send KICK message to all users in channel
+    std::string kickMsg = IRCResponse::createKick(client->getNickname(), client->getUsername(), "localhost", channelName, targetNick, reason);
+    channel->broadcast(kickMsg, server, -1); // Send to all users in channel
+
+    // Remove target user from channel
+    channel->removeUser(targetClient->getClientFd());
+
+    // If channel is empty, remove it
+    bool isEmpty = true;
+    std::map<int, Client*>& users = server->getClients();
+    for (std::map<int, Client*>::iterator it = users.begin(); it != users.end(); ++it)
+    {
+        if (channel->isUserInChannel(it->first))
+        {
+            isEmpty = false;
+            break;
+        }
+    }
+
+    if (isEmpty)
+    {
+        server->removeChannel(channelName);
+    }
+}
+
+void CommandExecuter::handleINVITE(Server* server, Client* client, const IRCMessage& msg)
+{
+    if (!client->isRegistered())
+    {
+        writeClientSendBuffer(server, client, IRCResponse::createErrorNotRegistered(client->getNickname()));
+        return;
+    }
+
+    if (msg.getParams().size() < 2)
+    {
+        writeClientSendBuffer(server, client, IRCResponse::createErrorNeedMoreParams(client->getNickname(), "INVITE"));
+        return;
+    }
+
+    std::string targetNick = msg.getParams()[0];
+    std::string channelName = msg.getParams()[1];
+
+    // Find target user
+    Client* targetClient = server->getClientByNickname(targetNick);
+    if (!targetClient)
+    {
+        writeClientSendBuffer(server, client, IRCResponse::createErrorNoSuchNick(client->getNickname(), targetNick));
+        return;
+    }
+
+    Channel* channel = server->getChannel(channelName);
+    if (!channel)
+    {
+        writeClientSendBuffer(server, client, IRCResponse::createErrorNoSuchChannel(client->getNickname(), channelName));
+        return;
+    }
+
+    // Check if inviter is in the channel
+    if (!channel->isUserInChannel(client->getClientFd()))
+    {
+        writeClientSendBuffer(server, client, IRCResponse::createErrorNotOnChannel(client->getNickname(), channelName));
+        return;
+    }
+
+    // Check if target is already in channel
+    if (channel->isUserInChannel(targetClient->getClientFd()))
+    {
+        writeClientSendBuffer(server, client, IRCResponse::createErrorUserOnChannel(client->getNickname(), targetNick, channelName));
+        return;
+    }
+
+    // Check if channel is invite-only and user is not operator
+    // For now, let's assume any user in channel can invite (we can make this stricter later)
+
+    // Send INVITE message to target user
+    std::string inviteMsg = IRCResponse::createInvite(client->getNickname(), client->getUsername(), "localhost", targetNick, channelName);
+    targetClient->appendToSendBuffer(inviteMsg);
+    server->markClientForSending(targetClient->getClientFd());
+
+    // Send success confirmation to inviter
+    writeClientSendBuffer(server, client, IRCResponse::createInviting(client->getNickname(), targetNick, channelName));
+
+    std::cout << "User " << client->getNickname() << " invited " << targetNick << " to channel " << channelName << std::endl;
 }
 
 void CommandExecuter::handlePRIVMSG(Server* server, Client* client, const IRCMessage& msg)

@@ -18,6 +18,10 @@ public:
     static std::string createErrorNotOnChannel(const std::string& nick, const std::string& channel);
     static std::string createErrorNoSuchNick(const std::string& nick, const std::string& target);
     static std::string createErrorCannotSendToChan(const std::string& nick, const std::string& channel);
+    static std::string createErrorChanOPrivsNeeded(const std::string& nick, const std::string& channel);
+    static std::string createErrorUserNotInChannel(const std::string& nick, const std::string& target, const std::string& channel);
+    static std::string createErrorUserOnChannel(const std::string& nick, const std::string& target, const std::string& channel);
+    static std::string createErrorInviteOnlyChannel(const std::string& nick, const std::string& channel);
 
     // Success responses
     static std::string createWelcome(const std::string& nick, const std::string& user, const std::string& host);
@@ -27,6 +31,14 @@ public:
     static std::string createPong(const std::string& serverName, const std::string& token);
     static std::string createJoin(const std::string& nick, const std::string& user, const std::string& host, const std::string& channel);
     static std::string createPart(const std::string& nick, const std::string& user, const std::string& host, const std::string& channel);
+    static std::string createKick(const std::string& nick, const std::string& user, const std::string& host, const std::string& channel, const std::string& target, const std::string& reason);
+    static std::string createInvite(const std::string& nick, const std::string& user, const std::string& host, const std::string& target, const std::string& channel);
+    static std::string createInviting(const std::string& nick, const std::string& target, const std::string& channel);
+
+    // Channel listing responses
+    static std::string createNamReply(const std::string& nick, const std::string& channel, const std::string& names);
+    static std::string createEndOfNames(const std::string& nick, const std::string& channel);
+    static std::string createPartWithReason(const std::string& nick, const std::string& user, const std::string& host, const std::string& channel, const std::string& reason);
 
 private:
     IRCResponse(); // Constructor private to prevent instantiation
