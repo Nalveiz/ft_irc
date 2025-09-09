@@ -17,6 +17,7 @@
 #include <vector>
 #include <sstream>
 #include <algorithm>
+#include <iostream>
 #include "IRCMessage.hpp"
 
 /**

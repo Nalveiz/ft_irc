@@ -6,16 +6,14 @@
 /*   By: soksak <soksak@42istanbul.com.tr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/04 00:19:13 by soksak            #+#    #+#             */
-/*   Updated: 2025/09/09 19:24:31 by soksak           ###   ########.fr       */
+/*   Updated: 2025/09/10 00:03:31 by soksak           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../includes/Channel.hpp"
 #include "../includes/Server.hpp"
-#include <sys/socket.h>
-#include <iostream>
 
-Channel::Channel(const std::string &name) : _name(name), _topic(""), _key(""), _userLimit(0), _inviteOnly(false)
+Channel::Channel(const std::string &name) : _name(name), _topic(""), _key(""), _userLimit(0), _inviteOnly(false), _topicRestricted(true)
 {
     std::cout << "Channel " << _name << " created" << std::endl;
 }
@@ -125,6 +123,36 @@ void Channel::setInviteOnly(bool invite)
     _inviteOnly = invite;
 }
 
+void Channel::setTopicRestricted(bool restricted)
+{
+    _topicRestricted = restricted;
+}
+
+bool Channel::isInviteOnly() const
+{
+    return _inviteOnly;
+}
+
+bool Channel::isTopicRestricted() const
+{
+    return _topicRestricted;
+}
+
+const std::string& Channel::getKey() const
+{
+    return _key;
+}
+
+size_t Channel::getUserLimit() const
+{
+    return _userLimit;
+}
+
+void Channel::removeOperator(int fd)
+{
+    _operators.erase(fd);
+}
+
 void Channel::broadcast(const std::string &message, Server* server, int exceptFd)
 {
     for (std::map<int, Client*>::iterator it = _users.begin(); it != _users.end(); ++it)
@@ -135,4 +163,49 @@ void Channel::broadcast(const std::string &message, Server* server, int exceptFd
             server->markClientForSending(it->first);
         }
     }
+}
+
+void Channel::sendUserList(Server* server, Client* client)
+{
+    std::string namesList = "";
+    std::map<int, Client*>& users = server->getClients();
+
+    // Build list of users in this channel
+    for (std::map<int, Client*>::iterator it = users.begin(); it != users.end(); ++it)
+    {
+        if (isUserInChannel(it->first))
+        {
+            if (!namesList.empty())
+                namesList += " ";
+
+            // Add @ prefix for operators
+            if (isOperator(it->first))
+                namesList += "@";
+
+            namesList += it->second->getNickname();
+        }
+    }
+
+    // Send NAMES reply
+    client->writeAndEnablePollOut(server, IRCResponse::createNamReply(client->getNickname(), _name, namesList));
+    client->writeAndEnablePollOut(server, IRCResponse::createEndOfNames(client->getNickname(), _name));
+}
+
+bool Channel::isValidChannelName(const std::string& channelName)
+{
+    if (channelName.empty() || channelName[0] != '#')
+        return false;
+
+    if (channelName.length() < 2 || channelName.length() > 50)
+        return false;
+
+    // Check for invalid characters
+    for (size_t i = 1; i < channelName.length(); ++i)
+    {
+        char c = channelName[i];
+        if (c == ' ' || c == ',' || c == '\r' || c == '\n' || c == '\0')
+            return false;
+    }
+
+    return true;
 }

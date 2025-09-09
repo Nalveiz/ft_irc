@@ -17,6 +17,11 @@
 #include "IRCResponse.hpp"
 #include <string>
 #include <vector>
+#include <algorithm>
+#include <sys/socket.h>
+#include <cctype>
+#include <iostream>
+#include <map>
 
 // Forward declarations to avoid circular dependencies
 class Server;
@@ -55,6 +60,8 @@ class CommandExecuter
         static void handlePART(Server* server, Client* client, const IRCMessage& msg);
         static void handleKICK(Server* server, Client* client, const IRCMessage& msg);
         static void handleINVITE(Server* server, Client* client, const IRCMessage& msg);
+        static void handleTOPIC(Server* server, Client* client, const IRCMessage& msg);
+        static void handleMODE(Server* server, Client* client, const IRCMessage& msg);
 
         // Communication commands
         static void handlePRIVMSG(Server* server, Client* client, const IRCMessage& msg);
@@ -64,12 +71,7 @@ class CommandExecuter
         static void handleQUIT(Server* server, Client* client, const IRCMessage& msg);
 
         // Helper functions
-        static void sendWelcome(Server* server, Client* client);
-        static void writeClientSendBuffer(Server* server, Client* client, const std::string& reply);
-        static bool isValidNickname(const std::string& nickname);
-        static bool isNicknameInUse(Server* server, const std::string& nickname, int excludeFd = -1);
-        static bool isValidChannelName(const std::string& channelName);
-        static void sendChannelUserList(Server* server, Client* client, Channel* channel);
+        static bool validateBasicCommand(Server* server, Client* client, const IRCMessage& msg, const std::string& commandName);
 
     private:
         // Private constructor - this is a utility class with static methods only

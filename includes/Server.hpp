@@ -22,13 +22,13 @@
 #include <vector>
 #include <map>
 #include <poll.h>
-#include <sstream>
 #include "Client.hpp"
 #include <fcntl.h>
 #include "IRCMessage.hpp"
 #include "CommandParser.hpp"
 #include "CommandExecuter.hpp"
 #include "Channel.hpp"
+#include "IRCResponse.hpp"
 
 class Server
 {
@@ -74,6 +74,10 @@ class Server
 		Channel* getChannel(const std::string& name);
 		void removeChannel(const std::string& name);
 		Client* getClientByNickname(const std::string& nickname);
+
+		// Client utilities
+		void sendWelcome(Client* client);
+		std::string getCurrentTime();
 
 		// Exceptions
 		class SocketCreationFailed : public std::exception

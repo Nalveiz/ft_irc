@@ -2,6 +2,8 @@
 #define IRCRESPONSE_HPP
 
 #include <string>
+#include <sstream>
+#include <sstream>
 
 class IRCResponse
 {
@@ -22,6 +24,7 @@ public:
     static std::string createErrorUserNotInChannel(const std::string& nick, const std::string& target, const std::string& channel);
     static std::string createErrorUserOnChannel(const std::string& nick, const std::string& target, const std::string& channel);
     static std::string createErrorInviteOnlyChannel(const std::string& nick, const std::string& channel);
+    static std::string createErrorTopicOPrivsNeeded(const std::string& nick, const std::string& channel);
 
     // Success responses
     static std::string createWelcome(const std::string& nick, const std::string& user, const std::string& host);
@@ -39,6 +42,11 @@ public:
     static std::string createNamReply(const std::string& nick, const std::string& channel, const std::string& names);
     static std::string createEndOfNames(const std::string& nick, const std::string& channel);
     static std::string createPartWithReason(const std::string& nick, const std::string& user, const std::string& host, const std::string& channel, const std::string& reason);
+
+    // TOPIC responses
+    static std::string createTopic(const std::string& nick, const std::string& user, const std::string& host, const std::string& channel, const std::string& topic);
+    static std::string createTopicReply(const std::string& nick, const std::string& channel, const std::string& topic);
+    static std::string createNoTopicReply(const std::string& nick, const std::string& channel);
 
 private:
     IRCResponse(); // Constructor private to prevent instantiation

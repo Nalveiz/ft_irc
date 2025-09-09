@@ -11,6 +11,7 @@
 /* ************************************************************************** */
 
 #include "../includes/Client.hpp"
+#include "../includes/Server.hpp"
 
 Client::Client(int client_fd) : _client_fd(client_fd), _isRegistered(false),
 								_hasPassword(false), _hasNick(false), _hasUser(false)
@@ -135,4 +136,44 @@ void Client::updateRegistrationStatus()
 		_isRegistered = true;
 		std::cout << "Client " << _client_fd << " is now fully registered!" << std::endl;
 	}
+}
+
+void Client::writeAndEnablePollOut(Server* server, const std::string& message)
+{
+	appendToSendBuffer(message);
+	server->markClientForSending(_client_fd);
+}
+
+bool Client::isValidNickname(const std::string& nickname)
+{
+	if (nickname.empty() || nickname.length() > 9)
+		return false;
+
+	// First character must be letter or special char
+	char first = nickname[0];
+	if (!std::isalpha(first) && first != '[' && first != ']' &&
+		first != '{' && first != '}' && first != '\\' && first != '|')
+		return false;
+
+	// Subsequent characters can be letters, digits, or special chars
+	for (size_t i = 1; i < nickname.length(); ++i)
+	{
+		char c = nickname[i];
+		if (!std::isalnum(c) && c != '[' && c != ']' &&
+			c != '{' && c != '}' && c != '\\' && c != '|' && c != '-')
+			return false;
+	}
+
+	return true;
+}
+
+bool Client::isNicknameInUse(Server* server, const std::string& nickname, int excludeFd)
+{
+	std::map<int, Client*>& clients = server->getClients();
+	for (std::map<int, Client*>::iterator it = clients.begin(); it != clients.end(); ++it)
+	{
+		if (it->first != excludeFd && it->second->getNickname() == nickname)
+			return true;
+	}
+	return false;
 }

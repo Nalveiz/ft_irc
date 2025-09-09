@@ -69,15 +69,10 @@ void Server::runServer()
 					// New client connection
 					int client_fd = accept(serverSocket, NULL, NULL);
 					if (client_fd >= 0)
-					{
 						addClient(client_fd);
-					}
 				}
 				else
-				{
-					// Existing client data
 					handleClientData(poll_fds[i]);
-				}
 			}
 			if (poll_fds[i].revents & POLLOUT)
 			{
@@ -301,6 +296,25 @@ Client* Server::getClientByNickname(const std::string& nickname)
 			return it->second;
 	}
 	return NULL;
+}
+
+
+std::string Server::getCurrentTime()
+{
+    time_t now = time(NULL);
+    char buf[64];
+    strftime(buf, sizeof(buf), "%c", localtime(&now));
+    return std::string(buf);
+}
+
+void Server::sendWelcome(Client* client)
+{
+	client->writeAndEnablePollOut(this, IRCResponse::createWelcome(client->getNickname(), client->getUsername(), "localhost"));
+	client->writeAndEnablePollOut(this, IRCResponse::createYourHost(client->getNickname(), "localhost"));
+	client->writeAndEnablePollOut(this, IRCResponse::createCreated(client->getNickname(), getCurrentTime()));
+	client->writeAndEnablePollOut(this, IRCResponse::createMyInfo(client->getNickname(), "localhost"));
+
+	std::cout << "Sent welcome messages to " << client->getNickname() << std::endl;
 }
 
 const char *Server::SocketCreationFailed::what() const throw()

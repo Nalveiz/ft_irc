@@ -1,5 +1,4 @@
 #include "../includes/IRCResponse.hpp"
-#include <sstream>
 
 // Error responses
 std::string IRCResponse::createErrorNeedMoreParams(const std::string& nick, const std::string& command)
@@ -107,6 +106,13 @@ std::string IRCResponse::createErrorInviteOnlyChannel(const std::string& nick, c
     return oss.str();
 }
 
+std::string IRCResponse::createErrorTopicOPrivsNeeded(const std::string& nick, const std::string& channel)
+{
+    std::ostringstream oss;
+    oss << ":server 482 " << nick << " " << channel << " :You're not channel operator\r\n";
+    return oss.str();
+}
+
 // Success responses
 std::string IRCResponse::createWelcome(const std::string& nick, const std::string& user, const std::string& host)
 {
@@ -196,5 +202,26 @@ std::string IRCResponse::createInviting(const std::string& nick, const std::stri
 {
     std::ostringstream oss;
     oss << ":server 341 " << nick << " " << target << " " << channel << "\r\n";
+    return oss.str();
+}
+
+std::string IRCResponse::createTopic(const std::string& nick, const std::string& user, const std::string& host, const std::string& channel, const std::string& topic)
+{
+    std::ostringstream oss;
+    oss << ":" << nick << "!" << user << "@" << host << " TOPIC " << channel << " :" << topic << "\r\n";
+    return oss.str();
+}
+
+std::string IRCResponse::createTopicReply(const std::string& nick, const std::string& channel, const std::string& topic)
+{
+    std::ostringstream oss;
+    oss << ":server 332 " << nick << " " << channel << " :" << topic << "\r\n";
+    return oss.str();
+}
+
+std::string IRCResponse::createNoTopicReply(const std::string& nick, const std::string& channel)
+{
+    std::ostringstream oss;
+    oss << ":server 331 " << nick << " " << channel << " :No topic is set\r\n";
     return oss.str();
 }

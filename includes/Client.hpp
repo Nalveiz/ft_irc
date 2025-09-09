@@ -16,6 +16,11 @@
 #include <string>
 #include <iostream>
 #include <fcntl.h>
+#include <cctype>
+#include <map>
+
+// Forward declarations
+class Server;
 
 class Client
 {
@@ -60,6 +65,13 @@ class Client
 		void appendToSendBuffer(const std::string& data);
 		void clearReadBuffer();
 		void clearSendBuffer();
+
+		// Write to send buffer and enable output polling
+		void writeAndEnablePollOut(class Server* server, const std::string& message);
+
+		// Static utility functions
+		static bool isValidNickname(const std::string& nickname);
+		static bool isNicknameInUse(class Server* server, const std::string& nickname, int excludeFd = -1);
 
 	private:
 		// Helper function
