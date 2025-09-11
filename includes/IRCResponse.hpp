@@ -25,12 +25,15 @@ public:
     static std::string createErrorUserOnChannel(const std::string& nick, const std::string& target, const std::string& channel);
     static std::string createErrorInviteOnlyChannel(const std::string& nick, const std::string& channel);
     static std::string createErrorTopicOPrivsNeeded(const std::string& nick, const std::string& channel);
+    static std::string createErrorBadChannelKey(const std::string& nick, const std::string& channel);
+    static std::string createErrorUserOnChannel(const std::string& nick, const std::string& channel);
 
     // Success responses
     static std::string createWelcome(const std::string& nick, const std::string& user, const std::string& host);
     static std::string createYourHost(const std::string& nick, const std::string& serverName);
     static std::string createCreated(const std::string& nick, const std::string& date);
     static std::string createMyInfo(const std::string& nick, const std::string& serverName);
+    static std::string createISupport(const std::string& nick);
     static std::string createPong(const std::string& serverName, const std::string& token);
     static std::string createJoin(const std::string& nick, const std::string& user, const std::string& host, const std::string& channel);
     static std::string createPart(const std::string& nick, const std::string& user, const std::string& host, const std::string& channel);
@@ -47,6 +50,20 @@ public:
     static std::string createTopic(const std::string& nick, const std::string& user, const std::string& host, const std::string& channel, const std::string& topic);
     static std::string createTopicReply(const std::string& nick, const std::string& channel, const std::string& topic);
     static std::string createNoTopicReply(const std::string& nick, const std::string& channel);
+
+    // PRIVMSG responses
+    static std::string createPrivmsg(const std::string& nick, const std::string& user, const std::string& host, const std::string& target, const std::string& message);
+
+    // NOTICE responses
+    static std::string createNotice(const std::string& nick, const std::string& message);
+
+    // NICK change response
+    static std::string createNickChange(const std::string& oldNick, const std::string& user, const std::string& host, const std::string& newNick);
+
+    // MODE responses
+    static std::string createModeReply(const std::string& nick, const std::string& channel, const std::string& modes);
+    static std::string createUnknownModeFlag(const std::string& nick);
+    static std::string createModeChange(const std::string& nick, const std::string& user, const std::string& host, const std::string& channel, const std::string& modes);
 
 private:
     IRCResponse(); // Constructor private to prevent instantiation

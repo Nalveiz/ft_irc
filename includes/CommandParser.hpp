@@ -20,12 +20,6 @@
 #include <iostream>
 #include "IRCMessage.hpp"
 
-/**
- * CommandParser - IRC Message Parser
- *
- * This class handles parsing of IRC protocol messages according to RFC 2812.
- * It provides static methods for parsing raw IRC messages into structured data.
- */
 class CommandParser
 {
 	public:

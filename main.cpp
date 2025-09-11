@@ -52,10 +52,11 @@ int main(int argc, char *argv[])
 	{
 		int port = checkPort(argv[1]);
 		std::string password = argv[2];
+		std::string hostname = "localhost";
 
-		Server server(port, password);
+		Server server(port, password, hostname);
 		server.bindAndListen();
-		server.runServer();  
+		server.runServer();
 	}
 	catch (const std::exception &e)
 	{

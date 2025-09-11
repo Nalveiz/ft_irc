@@ -36,6 +36,7 @@ class Server
 		int serverSocket;
 		int port;
 		std::string password;
+		std::string hostname;
 		sockaddr_in serverAddress;
 		std::map<int, Client*> clients;
 		std::map<std::string, Channel*> channels;
@@ -47,7 +48,7 @@ class Server
 		Server();
 	public:
 		// Constructor and Destructor
-		Server(int &port, const std::string &password);
+		Server(int &port, const std::string &password, const std::string &hostname);
 		~Server();
 
 		// Main server methods
@@ -66,6 +67,7 @@ class Server
 		int getServerSocket() const;
 		int getPort() const;
 		const std::string& getPassword() const;
+		const std::string& getHostname() const;
 		std::map<int, Client*>& getClients();
 		std::map<std::string, Channel*>& getChannels();
 

@@ -15,6 +15,7 @@
 
 #include "IRCMessage.hpp"
 #include "IRCResponse.hpp"
+#include "ChannelCommands.hpp"
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -29,20 +30,6 @@ class Client;
 class Channel;
 
 
-/**
- * CommandExecuter - IRC Command Processing Engine
- *
- * This class handles the execution of IRC commands sent by clients.
- * It provides static methods for each IRC command and manages the
- * interaction between clients, channels, and the server.
- *
- * Features:
- * - Command parsing and validation
- * - User authentication (PASS, NICK, USER)
- * - Channel management (JOIN, PART)
- * - Message handling (PRIVMSG)
- * - Server utilities (PING, QUIT)
- */
 class CommandExecuter
 {
     public:
@@ -50,18 +37,9 @@ class CommandExecuter
         static void executeCommand(Server* server, Client* client, const IRCMessage& msg);
 
         // Authentication and registration commands
-        static void handleCAP(int client_fd, const IRCMessage& message, Client& client);
         static void handlePASS(Server* server, Client* client, const IRCMessage& msg);
         static void handleNICK(Server* server, Client* client, const IRCMessage& msg);
         static void handleUSER(Server* server, Client* client, const IRCMessage& msg);
-
-        // Channel management commands
-        static void handleJOIN(Server* server, Client* client, const IRCMessage& msg);
-        static void handlePART(Server* server, Client* client, const IRCMessage& msg);
-        static void handleKICK(Server* server, Client* client, const IRCMessage& msg);
-        static void handleINVITE(Server* server, Client* client, const IRCMessage& msg);
-        static void handleTOPIC(Server* server, Client* client, const IRCMessage& msg);
-        static void handleMODE(Server* server, Client* client, const IRCMessage& msg);
 
         // Communication commands
         static void handlePRIVMSG(Server* server, Client* client, const IRCMessage& msg);

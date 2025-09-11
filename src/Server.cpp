@@ -1,6 +1,6 @@
 #include "../includes/Server.hpp"
 
-Server::Server(int &port, const std::string &password) : port(port), password(password)
+Server::Server(int &port, const std::string &password, const std::string &hostname) : port(port), password(password), hostname(hostname)
 {
 	std::cout << "Server initializing..." << std::endl;
 	// Create a socket, first things first
@@ -248,6 +248,11 @@ const std::string &Server::getPassword() const
 	return this->password;
 }
 
+const std::string &Server::getHostname() const
+{
+	return this->hostname;
+}
+
 std::map<int, Client*>& Server::getClients()
 {
 	return this->clients;
@@ -309,10 +314,11 @@ std::string Server::getCurrentTime()
 
 void Server::sendWelcome(Client* client)
 {
-	client->writeAndEnablePollOut(this, IRCResponse::createWelcome(client->getNickname(), client->getUsername(), "localhost"));
-	client->writeAndEnablePollOut(this, IRCResponse::createYourHost(client->getNickname(), "localhost"));
+	client->writeAndEnablePollOut(this, IRCResponse::createWelcome(client->getNickname(), client->getUsername(), hostname));
+	client->writeAndEnablePollOut(this, IRCResponse::createYourHost(client->getNickname(), hostname));
 	client->writeAndEnablePollOut(this, IRCResponse::createCreated(client->getNickname(), getCurrentTime()));
-	client->writeAndEnablePollOut(this, IRCResponse::createMyInfo(client->getNickname(), "localhost"));
+	client->writeAndEnablePollOut(this, IRCResponse::createMyInfo(client->getNickname(), hostname));
+	client->writeAndEnablePollOut(this, IRCResponse::createISupport(client->getNickname()));
 
 	std::cout << "Sent welcome messages to " << client->getNickname() << std::endl;
 }

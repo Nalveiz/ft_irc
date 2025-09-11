@@ -13,13 +13,6 @@
 #include "../includes/CommandParser.hpp"
 
 
-/**
- * Parse IRC message format: [PREFIX] COMMAND [params] [:trailing]
- * RFC 2812 compliant IRC message parsing
- *
- * @param message Raw IRC message string
- * @return Parsed IRCMessage object
- */
 IRCMessage CommandParser::parseMessage(const std::string& message)
 {
     IRCMessage msg;
@@ -107,13 +100,6 @@ IRCMessage CommandParser::parseMessage(const std::string& message)
     return msg;
 }
 
-/**
- * Split string by delimiter, removing empty tokens
- *
- * @param str String to split
- * @param delimiter Character to split by
- * @return Vector of non-empty tokens
- */
 std::vector<std::string> CommandParser::splitString(const std::string& str, char delimiter)
 {
     std::vector<std::string> tokens;
@@ -130,12 +116,6 @@ std::vector<std::string> CommandParser::splitString(const std::string& str, char
     return tokens;
 }
 
-/**
- * Remove leading and trailing whitespace from string
- *
- * @param str String to trim
- * @return Trimmed string
- */
 std::string CommandParser::trim(const std::string& str)
 {
     if (str.empty())
@@ -149,13 +129,6 @@ std::string CommandParser::trim(const std::string& str)
     return str.substr(start, end - start + 1);
 }
 
-/**
- * Validate IRC command name
- * IRC commands should be alphabetic characters only
- *
- * @param command Command string to validate
- * @return true if valid, false otherwise
- */
 bool CommandParser::isValidCommand(const std::string& command)
 {
     if (command.empty())

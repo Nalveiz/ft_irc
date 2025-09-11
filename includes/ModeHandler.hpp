@@ -12,14 +12,6 @@
 class Server;
 class Client;
 class Channel;
-
-/**
- * ModeHandler - IRC MODE Command Handler
- *
- * This class handles all IRC MODE command operations including:
- * - Channel modes: +i (invite-only), +t (topic restricted), +k (key), +o (operator), +l (limit)
- * - User modes (future implementation)
- */
 class ModeHandler
 {
 public:

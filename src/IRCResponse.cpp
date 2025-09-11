@@ -102,7 +102,7 @@ std::string IRCResponse::createErrorUserOnChannel(const std::string& nick, const
 std::string IRCResponse::createErrorInviteOnlyChannel(const std::string& nick, const std::string& channel)
 {
     std::ostringstream oss;
-    oss << ":server 473 " << nick << " " << channel << " :Cannot join channel (+i)\r\n";
+    oss << ":server 473 " << nick << " " << channel << " :This channel is invite only\r\n";
     return oss.str();
 }
 
@@ -110,6 +110,20 @@ std::string IRCResponse::createErrorTopicOPrivsNeeded(const std::string& nick, c
 {
     std::ostringstream oss;
     oss << ":server 482 " << nick << " " << channel << " :You're not channel operator\r\n";
+    return oss.str();
+}
+
+std::string IRCResponse::createErrorBadChannelKey(const std::string& nick, const std::string& channel)
+{
+    std::ostringstream oss;
+    oss << ":server 475 " << nick << " " << channel << " :Cannot join channel (+k)\r\n";
+    return oss.str();
+}
+
+std::string IRCResponse::createErrorUserOnChannel(const std::string& nick, const std::string& channel)
+{
+    std::ostringstream oss;
+    oss << ":server 443 " << nick << " " << channel << " :is already on channel\r\n";
     return oss.str();
 }
 
@@ -138,7 +152,20 @@ std::string IRCResponse::createCreated(const std::string& nick, const std::strin
 std::string IRCResponse::createMyInfo(const std::string& nick, const std::string& serverName)
 {
     std::ostringstream oss;
-    oss << ":server 004 " << nick << " " << serverName << " 1.0 o o\r\n";
+    // Format: 004 <nick> <servername> <version> <available user modes> <available channel modes>
+    // Channel modes: i(invite-only), t(topic-restricted), k(key), l(limit), o(operator)
+    oss << ":server 004 " << nick << " " << serverName << " 1.0 o itklo\r\n";
+    return oss.str();
+}
+
+std::string IRCResponse::createISupport(const std::string& nick)
+{
+    std::ostringstream oss;
+    // 005 ISUPPORT - Advertise server features
+    // CHANMODES: Channel modes organized by type
+    // PREFIX: User prefixes (operator @)
+    // CHANTYPES: Supported channel types (#)
+    oss << ":server 005 " << nick << " CHANMODES=,,,itkl PREFIX=(o)@ CHANTYPES=# :are supported by this server\r\n";
     return oss.str();
 }
 
@@ -223,5 +250,51 @@ std::string IRCResponse::createNoTopicReply(const std::string& nick, const std::
 {
     std::ostringstream oss;
     oss << ":server 331 " << nick << " " << channel << " :No topic is set\r\n";
+    return oss.str();
+}
+
+// NOTICE responses
+std::string IRCResponse::createNotice(const std::string& nick, const std::string& message)
+{
+    std::ostringstream oss;
+    oss << ":server NOTICE " << nick << " :" << message << "\r\n";
+    return oss.str();
+}
+
+// NICK change response
+std::string IRCResponse::createNickChange(const std::string& oldNick, const std::string& user, const std::string& host, const std::string& newNick)
+{
+    std::ostringstream oss;
+    oss << ":" << oldNick << "!" << user << "@" << host << " NICK " << newNick << "\r\n";
+    return oss.str();
+}
+
+// PRIVMSG response
+std::string IRCResponse::createPrivmsg(const std::string& nick, const std::string& user, const std::string& host, const std::string& target, const std::string& message)
+{
+    std::ostringstream oss;
+    oss << ":" << nick << "!" << user << "@" << host << " PRIVMSG " << target << " :" << message << "\r\n";
+    return oss.str();
+}
+
+// MODE responses
+std::string IRCResponse::createModeReply(const std::string& nick, const std::string& channel, const std::string& modes)
+{
+    std::ostringstream oss;
+    oss << ":server 324 " << nick << " " << channel << " " << modes << "\r\n";
+    return oss.str();
+}
+
+std::string IRCResponse::createUnknownModeFlag(const std::string& nick)
+{
+    std::ostringstream oss;
+    oss << ":server 501 " << nick << " :Unknown MODE flag\r\n";
+    return oss.str();
+}
+
+std::string IRCResponse::createModeChange(const std::string& nick, const std::string& user, const std::string& host, const std::string& channel, const std::string& modes)
+{
+    std::ostringstream oss;
+    oss << ":" << nick << "!" << user << "@" << host << " MODE " << channel << " " << modes << "\r\n";
     return oss.str();
 }
