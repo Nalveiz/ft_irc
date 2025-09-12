@@ -57,12 +57,6 @@ std::string IRCResponse::createErrorPasswdMismatch(const std::string& nick)
     return oss.str();
 }
 
-std::string IRCResponse::createErrorPasswordRequired(const std::string& nick)
-{
-    std::ostringstream oss;
-    oss << ":server 464 " << nick << " :Password required\r\n";
-    return oss.str();
-}
 
 std::string IRCResponse::createErrorNoSuchChannel(const std::string& nick, const std::string& channel)
 {
@@ -75,6 +69,13 @@ std::string IRCResponse::createErrorNotOnChannel(const std::string& nick, const 
 {
     std::ostringstream oss;
     oss << ":server 442 " << nick << " " << channel << " :You're not on that channel\r\n";
+    return oss.str();
+}
+
+std::string IRCResponse::createQUIT(const std::string& nick, const std::string& user, const std::string& host, const std::string& reason)
+{
+    std::ostringstream oss;
+    oss << ":" << nick << "!" << user << "@" << host << " QUIT :" << reason << "\r\n";
     return oss.str();
 }
 

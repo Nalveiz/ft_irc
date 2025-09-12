@@ -8,13 +8,15 @@ bool ChannelCommands::validateBasicCommand(Server *server, Client *client, const
 {
 	if (!client->isRegistered())
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorNotRegistered(client->getNickname()));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorNotRegistered(client->getNickname()));
 		return false;
 	}
 
 	if (msg.getParams().empty())
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorNeedMoreParams(client->getNickname(), commandName));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorNeedMoreParams(client->getNickname(), commandName));
 		return false;
 	}
 
@@ -37,7 +39,8 @@ void ChannelCommands::handleJOIN(Server *server, Client *client, const IRCMessag
 	// Validate channel name format
 	if (!Channel::isValidChannelName(channelName))
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorNoSuchChannel(client->getNickname(), channelName));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorNoSuchChannel(client->getNickname(), channelName));
 		return;
 	}
 
@@ -64,7 +67,8 @@ void ChannelCommands::handleJOIN(Server *server, Client *client, const IRCMessag
 
 		if (providedKey != channel->getKey())
 		{
-			client->writeAndEnablePollOut(server, IRCResponse::createErrorBadChannelKey(client->getNickname(), channelName));
+			client->writeAndEnablePollOut(server,
+				IRCResponse::createErrorBadChannelKey(client->getNickname(), channelName));
 			return;
 		}
 	}
@@ -72,7 +76,8 @@ void ChannelCommands::handleJOIN(Server *server, Client *client, const IRCMessag
 	// Check if channel is invite only
 	if (channel->isInviteOnly())
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorInviteOnlyChannel(client->getNickname(), channelName));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorInviteOnlyChannel(client->getNickname(), channelName));
 		return;
 	}
 
@@ -80,8 +85,8 @@ void ChannelCommands::handleJOIN(Server *server, Client *client, const IRCMessag
 	if (channel->isUserInChannel(client->getClientFd()))
 	{
 		// User is already in the channel - send appropriate message
-		std::string response = IRCResponse::createErrorUserOnChannel(client->getNickname(), channelName);
-		client->writeAndEnablePollOut(server, response);
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorUserOnChannel(client->getNickname(), channelName));
 		return;
 	}
 
@@ -89,8 +94,8 @@ void ChannelCommands::handleJOIN(Server *server, Client *client, const IRCMessag
 	if (channel->addUser(client))
 	{
 		// Send JOIN message to all users in channel (including the joining user)
-		std::string joinMsg = IRCResponse::createJoin(client->getNickname(), client->getUsername(), server->getHostname(), channelName);
-		channel->broadcast(joinMsg, server, -1); // Send to all users in channel
+		channel->broadcast(IRCResponse::createJoin(client->getNickname(),
+			client->getUsername(), server->getHostname(), channelName), server, -1); // Send to all users in channel
 
 		// Send channel user list (NAMES reply)
 		channel->sendUserList(server, client);
@@ -99,13 +104,13 @@ void ChannelCommands::handleJOIN(Server *server, Client *client, const IRCMessag
 		std::string topic = channel->getTopic();
 		if (!topic.empty())
 		{
-			std::string topicReply = IRCResponse::createTopicReply(client->getNickname(), channelName, topic);
-			client->writeAndEnablePollOut(server, topicReply);
+			client->writeAndEnablePollOut(server,
+				IRCResponse::createTopicReply(client->getNickname(), channelName, topic));
 		}
 		else
 		{
-			std::string noTopicReply = IRCResponse::createNoTopicReply(client->getNickname(), channelName);
-			client->writeAndEnablePollOut(server, noTopicReply);
+			client->writeAndEnablePollOut(server,
+				IRCResponse::createNoTopicReply(client->getNickname(), channelName));
 		}
 	}
 	else
@@ -125,13 +130,15 @@ void ChannelCommands::handlePART(Server *server, Client *client, const IRCMessag
 
 	if (!channel)
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorNoSuchChannel(client->getNickname(), channelName));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorNoSuchChannel(client->getNickname(), channelName));
 		return;
 	}
 
 	if (!channel->isUserInChannel(client->getClientFd()))
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorNotOnChannel(client->getNickname(), channelName));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorNotOnChannel(client->getNickname(), channelName));
 		return;
 	}
 
@@ -166,13 +173,15 @@ void ChannelCommands::handleKICK(Server *server, Client *client, const IRCMessag
 {
 	if (!client->isRegistered())
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorNotRegistered(client->getNickname()));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorNotRegistered(client->getNickname()));
 		return;
 	}
 
 	if (msg.getParams().size() < 2)
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorNeedMoreParams(client->getNickname(), "KICK"));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorNeedMoreParams(client->getNickname(), "KICK"));
 		return;
 	}
 
@@ -183,21 +192,24 @@ void ChannelCommands::handleKICK(Server *server, Client *client, const IRCMessag
 	Channel *channel = server->getChannel(channelName);
 	if (!channel)
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorNoSuchChannel(client->getNickname(), channelName));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorNoSuchChannel(client->getNickname(), channelName));
 		return;
 	}
 
 	// Check if kicker is in the channel
 	if (!channel->isUserInChannel(client->getClientFd()))
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorNotOnChannel(client->getNickname(), channelName));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorNotOnChannel(client->getNickname(), channelName));
 		return;
 	}
 
 	// Check if kicker is an operator
 	if (!channel->isOperator(client->getClientFd()))
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorChanOPrivsNeeded(client->getNickname(), channelName));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorChanOPrivsNeeded(client->getNickname(), channelName));
 		return;
 	}
 
@@ -205,14 +217,16 @@ void ChannelCommands::handleKICK(Server *server, Client *client, const IRCMessag
 	Client *targetClient = server->getClientByNickname(targetNick);
 	if (!targetClient)
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorNoSuchNick(client->getNickname(), targetNick));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorNoSuchNick(client->getNickname(), targetNick));
 		return;
 	}
 
 	// Check if target is in the channel
 	if (!channel->isUserInChannel(targetClient->getClientFd()))
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorUserNotInChannel(client->getNickname(), targetNick, channelName));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorUserNotInChannel(client->getNickname(), targetNick, channelName));
 		return;
 	}
 
@@ -230,13 +244,15 @@ void ChannelCommands::handleINVITE(Server *server, Client *client, const IRCMess
 {
 	if (!client->isRegistered())
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorNotRegistered(client->getNickname()));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorNotRegistered(client->getNickname()));
 		return;
 	}
 
 	if (msg.getParams().size() < 2)
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorNeedMoreParams(client->getNickname(), "INVITE"));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorNeedMoreParams(client->getNickname(), "INVITE"));
 		return;
 	}
 
@@ -247,7 +263,8 @@ void ChannelCommands::handleINVITE(Server *server, Client *client, const IRCMess
 	Client *targetClient = server->getClientByNickname(targetNick);
 	if (!targetClient)
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorNoSuchNick(client->getNickname(), targetNick));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorNoSuchNick(client->getNickname(), targetNick));
 		return;
 	}
 
@@ -255,30 +272,34 @@ void ChannelCommands::handleINVITE(Server *server, Client *client, const IRCMess
 	Channel *channel = server->getChannel(channelName);
 	if (!channel)
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorNoSuchChannel(client->getNickname(), channelName));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorNoSuchChannel(client->getNickname(), channelName));
 		return;
 	}
 
 	// Check if inviter is in the channel
 	if (!channel->isUserInChannel(client->getClientFd()))
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorNotOnChannel(client->getNickname(), channelName));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorNotOnChannel(client->getNickname(), channelName));
 		return;
 	}
 
 	// Check if target is already in channel
 	if (channel->isUserInChannel(targetClient->getClientFd()))
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorUserOnChannel(client->getNickname(), targetNick, channelName));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorUserOnChannel(client->getNickname(), targetNick, channelName));
 		return;
 	}
 
 	// Send invite message
-	std::string inviteMsg = IRCResponse::createInvite(client->getNickname(), client->getUsername(), server->getHostname(), targetNick, channelName);
-	targetClient->writeAndEnablePollOut(server, inviteMsg);
+	targetClient->writeAndEnablePollOut(server,
+		IRCResponse::createInvite(client->getNickname(), client->getUsername(), server->getHostname(), targetNick, channelName));
 
 	// Send confirmation to inviter
-	client->writeAndEnablePollOut(server, IRCResponse::createInviting(client->getNickname(), targetNick, channelName));
+	client->writeAndEnablePollOut(server,
+		IRCResponse::createInviting(client->getNickname(), targetNick, channelName));
 
 	std::cout << "User " << client->getNickname() << " invited " << targetNick << " to " << channelName << std::endl;
 }
@@ -293,14 +314,16 @@ void ChannelCommands::handleTOPIC(Server *server, Client *client, const IRCMessa
 
 	if (!channel)
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorNoSuchChannel(client->getNickname(), channelName));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorNoSuchChannel(client->getNickname(), channelName));
 		return;
 	}
 
 	// Check if user is in channel
 	if (!channel->isUserInChannel(client->getClientFd()))
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorNotOnChannel(client->getNickname(), channelName));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorNotOnChannel(client->getNickname(), channelName));
 		return;
 	}
 
@@ -310,11 +333,13 @@ void ChannelCommands::handleTOPIC(Server *server, Client *client, const IRCMessa
 		std::string currentTopic = channel->getTopic();
 		if (currentTopic.empty())
 		{
-			client->writeAndEnablePollOut(server, IRCResponse::createNoTopicReply(client->getNickname(), channelName));
+			client->writeAndEnablePollOut(server,
+				IRCResponse::createNoTopicReply(client->getNickname(), channelName));
 		}
 		else
 		{
-			client->writeAndEnablePollOut(server, IRCResponse::createTopicReply(client->getNickname(), channelName, currentTopic));
+			client->writeAndEnablePollOut(server,
+				IRCResponse::createTopicReply(client->getNickname(), channelName, currentTopic));
 		}
 		return;
 	}
@@ -322,7 +347,8 @@ void ChannelCommands::handleTOPIC(Server *server, Client *client, const IRCMessa
 	// Check if channel is +t (topic restricted) and user is not operator
 	if (channel->isTopicRestricted() && !channel->isOperator(client->getClientFd()))
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorTopicOPrivsNeeded(client->getNickname(), channelName));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorTopicOPrivsNeeded(client->getNickname(), channelName));
 		return;
 	}
 

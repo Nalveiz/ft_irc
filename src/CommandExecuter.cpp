@@ -6,7 +6,7 @@
 /*   By: soksak <soksak@42istanbul.com.tr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/07 19:25:45 by soksak            #+#    #+#             */
-/*   Updated: 2025/09/13 01:30:31 by soksak           ###   ########.fr       */
+/*   Updated: 2025/09/13 02:02:58 by soksak           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,13 +76,15 @@ void CommandExecuter::handlePASS(Server *server, Client *client, const IRCMessag
 {
 	if (client->hasPassword())
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorAlreadyRegistered(client->getNickname()));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorAlreadyRegistered(client->getNickname()));
 		return;
 	}
 
 	if (msg.getParams().empty())
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorNeedMoreParams("*", "PASS"));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorNeedMoreParams("*", "PASS"));
 		return;
 	}
 
@@ -94,11 +96,13 @@ void CommandExecuter::handlePASS(Server *server, Client *client, const IRCMessag
 		client->setPassword(true);
 		std::cout << "Client " << client->getClientFd() << " provided correct password" << std::endl;
 		// Send a notice to confirm password acceptance
-		client->writeAndEnablePollOut(server, IRCResponse::createNotice("*", "Password accepted"));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createNotice("*", "Password accepted"));
 	}
 	else
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorPasswdMismatch("*"));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorPasswdMismatch("*"));
 		std::cout << "Client " << client->getClientFd() << " provided wrong password" << std::endl;
 	}
 }
@@ -111,7 +115,8 @@ void CommandExecuter::handleNICK(Server *server, Client *client, const IRCMessag
 	if (msg.getParams().empty())
 	{
 		std::string currentNick = client->getNickname().empty() ? "*" : client->getNickname();
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorNeedMoreParams(currentNick, "NICK"));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorNeedMoreParams(currentNick, "NICK"));
 		return;
 	}
 
@@ -121,7 +126,8 @@ void CommandExecuter::handleNICK(Server *server, Client *client, const IRCMessag
 	if (!Client::isValidNickname(newNick))
 	{
 		std::string currentNick = client->getNickname().empty() ? "*" : client->getNickname();
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorErroneusNickname(currentNick, newNick));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorErroneusNickname(currentNick, newNick));
 		return;
 	}
 
@@ -129,7 +135,8 @@ void CommandExecuter::handleNICK(Server *server, Client *client, const IRCMessag
 	if (Client::isNicknameInUse(server, newNick, client->getClientFd()))
 	{
 		std::string currentNick = client->getNickname().empty() ? "*" : client->getNickname();
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorNicknameInUse(currentNick, newNick));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorNicknameInUse(currentNick, newNick));
 		return;
 	}
 
@@ -149,14 +156,16 @@ void CommandExecuter::handleNICK(Server *server, Client *client, const IRCMessag
 			Channel *channel = it->second;
 			if (channel && channel->isUserInChannel(client->getClientFd()))
 			{
-				channel->broadcast(IRCResponse::createNickChange(oldNick, client->getUsername(), server->getHostname(), newNick), server, -1);
+				channel->broadcast(IRCResponse::createNickChange(oldNick, client->getUsername(), server->getHostname(),
+					 newNick), server, -1);
 			}
 		}
 		return;
 	}
 	if (client->isRegistered())
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createNotice(newNick, "Your nick is set to " + newNick));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createNotice(newNick, "Your nick is set to " + newNick));
 		server->sendWelcome(client);
 	}
 }
@@ -168,14 +177,16 @@ void CommandExecuter::handleUSER(Server *server, Client *client, const IRCMessag
 
 	if (client->hasUser())
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorAlreadyRegistered(client->getNickname()));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorAlreadyRegistered(client->getNickname()));
 		return;
 	}
 
 	if (msg.getParams().size() < 3 || msg.getTrailing().empty())
 	{
 		std::string currentNick = client->getNickname().empty() ? "*" : client->getNickname();
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorNeedMoreParams(currentNick, "USER"));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorNeedMoreParams(currentNick, "USER"));
 		return;
 	}
 
@@ -189,7 +200,8 @@ void CommandExecuter::handleUSER(Server *server, Client *client, const IRCMessag
 
 	// Send a notice to confirm user info acceptance
 	std::string userNick = client->getNickname().empty() ? "*" : client->getNickname();
-	client->writeAndEnablePollOut(server, IRCResponse::createNotice(userNick, "User information accepted"));
+	client->writeAndEnablePollOut(server,
+		IRCResponse::createNotice(userNick, "User information accepted"));
 
 	// Send welcome if client is now fully registered
 	if (client->isRegistered())
@@ -205,10 +217,12 @@ void CommandExecuter::handlePING(Server *server, Client *client, const IRCMessag
 
 	if (msg.getParams().empty())
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorNeedMoreParams(client->getNickname(), "PING"));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorNeedMoreParams(client->getNickname(), "PING"));
 		return;
 	}
-	client->writeAndEnablePollOut(server, IRCResponse::createPong(server->getHostname(), msg.getParams()[0]));
+	client->writeAndEnablePollOut(server,
+		IRCResponse::createPong(server->getHostname(), msg.getParams()[0]));
 }
 
 void CommandExecuter::handleQUIT(Server *server, Client *client, const IRCMessage &msg)
@@ -217,6 +231,19 @@ void CommandExecuter::handleQUIT(Server *server, Client *client, const IRCMessag
 	std::cout << "Client " << client->getClientFd() << " is quitting: " << quit_msg << std::endl;
 
 	// TODO: Notify other clients in channels
+	if (!client->getNickname().empty())
+	{
+		std::map<std::string, Channel *> &channels = server->getChannels();
+		for (std::map<std::string, Channel *>::iterator it = channels.begin(); it != channels.end(); ++it)
+		{
+			Channel *channel = it->second;
+			if (channel && channel->isUserInChannel(client->getClientFd()))
+			{
+				channel->broadcast(IRCResponse::createQUIT(client->getNickname(), client->getUsername(),
+					server->getHostname(), quit_msg), server, client->getClientFd());
+			}
+		}
+	}
 	server->removeClient(client->getClientFd());
 }
 
@@ -224,13 +251,15 @@ bool CommandExecuter::validateBasicCommand(Server *server, Client *client, const
 {
 	if (!client->isRegistered())
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorNotRegistered(client->getNickname()));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorNotRegistered(client->getNickname()));
 		return false;
 	}
 
 	if (msg.getParams().empty())
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorNeedMoreParams(client->getNickname(), commandName));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorNeedMoreParams(client->getNickname(), commandName));
 		return false;
 	}
 
@@ -241,13 +270,15 @@ void CommandExecuter::handlePRIVMSG(Server *server, Client *client, const IRCMes
 {
 	if (!client->isRegistered())
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorNotRegistered(client->getNickname()));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorNotRegistered(client->getNickname()));
 		return;
 	}
 
 	if (msg.getParams().empty() || msg.getTrailing().empty())
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorNeedMoreParams(client->getNickname(), "PRIVMSG"));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorNeedMoreParams(client->getNickname(), "PRIVMSG"));
 		return;
 	}
 
@@ -263,13 +294,15 @@ void CommandExecuter::handlePRIVMSG(Server *server, Client *client, const IRCMes
 		Channel *channel = server->getChannel(target);
 		if (!channel)
 		{
-			client->writeAndEnablePollOut(server, IRCResponse::createErrorNoSuchChannel(client->getNickname(), target));
+			client->writeAndEnablePollOut(server,
+				IRCResponse::createErrorNoSuchChannel(client->getNickname(), target));
 			return;
 		}
 
 		if (!channel->isUserInChannel(client->getClientFd()))
 		{
-			client->writeAndEnablePollOut(server, IRCResponse::createErrorNotOnChannel(client->getNickname(), target));
+			client->writeAndEnablePollOut(server,
+				IRCResponse::createErrorNotOnChannel(client->getNickname(), target));
 			return;
 		}
 
@@ -282,7 +315,8 @@ void CommandExecuter::handlePRIVMSG(Server *server, Client *client, const IRCMes
 		Client *targetClient = server->getClientByNickname(target);
 		if (!targetClient)
 		{
-			client->writeAndEnablePollOut(server, IRCResponse::createErrorNoSuchNick(client->getNickname(), target));
+			client->writeAndEnablePollOut(server,
+				IRCResponse::createErrorNoSuchNick(client->getNickname(), target));
 			return;
 		}
 

@@ -20,7 +20,7 @@ public:
 
 private:
     // Channel mode handlers
-    static void handleChannelMode(Server* server, Client* client, const std::string& channel, const std::string& modeString, const std::vector<std::string>& params);
+    static void handleChannelMode(Server* server, Client* client, std::string& channel, std::string& modeString, std::vector<std::string>& params);
 
     // Helper functions
     static std::string getCurrentModes(Channel* channel);

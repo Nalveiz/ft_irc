@@ -17,14 +17,16 @@ void ModeHandler::handleMODE(Server *server, Client *client, const IRCMessage &m
 		Channel *channel = server->getChannel(target);
 		if (!channel)
 		{
-			client->writeAndEnablePollOut(server, IRCResponse::createErrorNoSuchChannel(client->getNickname(), target));
+			client->writeAndEnablePollOut(server,
+				IRCResponse::createErrorNoSuchChannel(client->getNickname(), target));
 			return;
 		}
 
 		// Check if user is in channel
 		if (!channel->isUserInChannel(client->getClientFd()))
 		{
-			client->writeAndEnablePollOut(server, IRCResponse::createErrorNotOnChannel(client->getNickname(), target));
+			client->writeAndEnablePollOut(server,
+				IRCResponse::createErrorNotOnChannel(client->getNickname(), target));
 			return;
 		}
 
@@ -50,11 +52,12 @@ void ModeHandler::handleMODE(Server *server, Client *client, const IRCMessage &m
 	else
 	{
 		// User modes not implemented yet
-		client->writeAndEnablePollOut(server, IRCResponse::createUnknownModeFlag(client->getNickname()));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createUnknownModeFlag(client->getNickname()));
 	}
 }
 
-void ModeHandler::handleChannelMode(Server *server, Client *client, const std::string &channelName, const std::string &modeString, const std::vector<std::string> &params)
+void ModeHandler::handleChannelMode(Server *server, Client *client, std::string &channelName, std::string &modeString, std::vector<std::string> &params)
 {
 	Channel *channel = server->getChannel(channelName);
 	if (!channel)
@@ -63,7 +66,8 @@ void ModeHandler::handleChannelMode(Server *server, Client *client, const std::s
 	// Check if user is operator (required for most mode changes)
 	if (!channel->isOperator(client->getClientFd()))
 	{
-		client->writeAndEnablePollOut(server, IRCResponse::createErrorChanOPrivsNeeded(client->getNickname(), channelName));
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorChanOPrivsNeeded(client->getNickname(), channelName));
 		return;
 	}
 
@@ -90,7 +94,8 @@ void ModeHandler::handleChannelMode(Server *server, Client *client, const std::s
 		if (!isValidModeChar(c))
 		{
 			// Send unknown mode flag error to client
-			client->writeAndEnablePollOut(server, IRCResponse::createUnknownModeFlag(client->getNickname()));
+			client->writeAndEnablePollOut(server,
+				IRCResponse::createUnknownModeFlag(client->getNickname()));
 			continue;
 		}
 
