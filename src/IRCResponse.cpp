@@ -36,6 +36,13 @@ std::string IRCResponse::createErrorNotRegistered(const std::string& nick)
     return oss.str();
 }
 
+std::string IRCResponse::createErrorUnknownCommand(const std::string& nick, const std::string& command)
+{
+    std::ostringstream oss;
+    oss << ":server 421 " << nick << " " << command << " :Unknown command\r\n";
+    return oss.str();
+}
+
 std::string IRCResponse::createErrorAlreadyRegistered(const std::string& nick)
 {
     std::ostringstream oss;
@@ -47,6 +54,13 @@ std::string IRCResponse::createErrorPasswdMismatch(const std::string& nick)
 {
     std::ostringstream oss;
     oss << ":server 464 " << nick << " :Password incorrect\r\n";
+    return oss.str();
+}
+
+std::string IRCResponse::createErrorPasswordRequired(const std::string& nick)
+{
+    std::ostringstream oss;
+    oss << ":server 464 " << nick << " :Password required\r\n";
     return oss.str();
 }
 

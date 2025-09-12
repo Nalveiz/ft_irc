@@ -27,6 +27,8 @@ public:
     static std::string createErrorTopicOPrivsNeeded(const std::string& nick, const std::string& channel);
     static std::string createErrorBadChannelKey(const std::string& nick, const std::string& channel);
     static std::string createErrorUserOnChannel(const std::string& nick, const std::string& channel);
+    static std::string createErrorUnknownCommand(const std::string& nick, const std::string& command);
+    static std::string createErrorPasswordRequired(const std::string& nick);
 
     // Success responses
     static std::string createWelcome(const std::string& nick, const std::string& user, const std::string& host);

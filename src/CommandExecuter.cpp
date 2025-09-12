@@ -6,7 +6,7 @@
 /*   By: soksak <soksak@42istanbul.com.tr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/07 19:25:45 by soksak            #+#    #+#             */
-/*   Updated: 2025/09/11 21:50:23 by soksak           ###   ########.fr       */
+/*   Updated: 2025/09/12 23:02:39 by soksak           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,14 +69,16 @@ void CommandExecuter::executeCommand(Server *server, Client *client, const IRCMe
 	else
 	{
 		std::cout << "Unknown command: " << cmd << std::endl;
-		// Could send ERR_UNKNOWNCOMMAND here
 	}
 }
 
 void CommandExecuter::handlePASS(Server *server, Client *client, const IRCMessage &msg)
 {
-	if (!validateBasicCommand(server, client, msg, "PASS"))
+	if (client->hasPassword())
+	{
+		client->writeAndEnablePollOut(server, IRCResponse::createErrorAlreadyRegistered(client->getNickname()));
 		return;
+	}
 
 	std::string password = msg.getParams()[0];
 
@@ -97,6 +99,9 @@ void CommandExecuter::handlePASS(Server *server, Client *client, const IRCMessag
 
 void CommandExecuter::handleNICK(Server *server, Client *client, const IRCMessage &msg)
 {
+	if (!client->hasPassword())
+		return;
+
 	if (msg.getParams().empty())
 	{
 		std::string currentNick = client->getNickname().empty() ? "*" : client->getNickname();
@@ -152,6 +157,9 @@ void CommandExecuter::handleNICK(Server *server, Client *client, const IRCMessag
 
 void CommandExecuter::handleUSER(Server *server, Client *client, const IRCMessage &msg)
 {
+	if (!client->hasPassword())
+		return;
+
 	if (client->hasUser())
 	{
 		client->writeAndEnablePollOut(server, IRCResponse::createErrorAlreadyRegistered(client->getNickname()));
@@ -186,14 +194,15 @@ void CommandExecuter::handleUSER(Server *server, Client *client, const IRCMessag
 
 void CommandExecuter::handlePING(Server *server, Client *client, const IRCMessage &msg)
 {
+	// if (!client->hasPassword())
+	// 	return;
+
 	if (msg.getParams().empty())
 	{
 		client->writeAndEnablePollOut(server, IRCResponse::createErrorNeedMoreParams(client->getNickname(), "PING"));
 		return;
 	}
-
-	std::string pong_reply = IRCResponse::createPong(server->getHostname(), msg.getParams()[0]);
-	client->writeAndEnablePollOut(server, pong_reply);
+	client->writeAndEnablePollOut(server, IRCResponse::createPong(server->getHostname(), msg.getParams()[0]));
 }
 
 void CommandExecuter::handleQUIT(Server *server, Client *client, const IRCMessage &msg)
