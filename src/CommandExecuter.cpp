@@ -6,7 +6,7 @@
 /*   By: soksak <soksak@42istanbul.com.tr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/07 19:25:45 by soksak            #+#    #+#             */
-/*   Updated: 2025/09/12 23:02:39 by soksak           ###   ########.fr       */
+/*   Updated: 2025/09/13 01:30:31 by soksak           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,6 +77,12 @@ void CommandExecuter::handlePASS(Server *server, Client *client, const IRCMessag
 	if (client->hasPassword())
 	{
 		client->writeAndEnablePollOut(server, IRCResponse::createErrorAlreadyRegistered(client->getNickname()));
+		return;
+	}
+
+	if (msg.getParams().empty())
+	{
+		client->writeAndEnablePollOut(server, IRCResponse::createErrorNeedMoreParams("*", "PASS"));
 		return;
 	}
 
@@ -194,8 +200,8 @@ void CommandExecuter::handleUSER(Server *server, Client *client, const IRCMessag
 
 void CommandExecuter::handlePING(Server *server, Client *client, const IRCMessage &msg)
 {
-	// if (!client->hasPassword())
-	// 	return;
+	if (!client->hasPassword())
+		return;
 
 	if (msg.getParams().empty())
 	{
