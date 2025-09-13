@@ -6,7 +6,7 @@
 /*   By: soksak <soksak@42istanbul.com.tr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/07 19:25:45 by soksak            #+#    #+#             */
-/*   Updated: 2025/09/13 02:02:58 by soksak           ###   ########.fr       */
+/*   Updated: 2025/09/13 03:13:48 by soksak           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -240,7 +240,7 @@ void CommandExecuter::handleQUIT(Server *server, Client *client, const IRCMessag
 			if (channel && channel->isUserInChannel(client->getClientFd()))
 			{
 				channel->broadcast(IRCResponse::createQUIT(client->getNickname(), client->getUsername(),
-					server->getHostname(), quit_msg), server, client->getClientFd());
+					server->getHostname(), quit_msg), server, -1);
 			}
 		}
 	}

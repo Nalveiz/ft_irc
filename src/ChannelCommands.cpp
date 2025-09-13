@@ -151,19 +151,7 @@ void ChannelCommands::handlePART(Server *server, Client *client, const IRCMessag
 	// Remove user from channel
 	channel->removeUser(client->getClientFd());
 
-	// If channel is empty, remove it
-	bool isEmpty = true;
-	std::map<int, Client *> &users = server->getClients();
-	for (std::map<int, Client *>::iterator it = users.begin(); it != users.end(); ++it)
-	{
-		if (channel->isUserInChannel(it->first))
-		{
-			isEmpty = false;
-			break;
-		}
-	}
-
-	if (isEmpty)
+	if (channel->isChannelEmpty())
 	{
 		server->removeChannel(channelName);
 	}
@@ -236,6 +224,11 @@ void ChannelCommands::handleKICK(Server *server, Client *client, const IRCMessag
 
 	// Remove target user from channel
 	channel->removeUser(targetClient->getClientFd());
+
+	if (channel->isChannelEmpty())
+	{
+		server->removeChannel(channelName);
+	}
 
 	std::cout << "User " << targetNick << " was kicked from " << channelName << " by " << client->getNickname() << std::endl;
 }

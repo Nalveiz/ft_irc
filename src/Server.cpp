@@ -133,6 +133,30 @@ void Server::addClient(int client_fd)
 
 void Server::removeClient(int client_fd)
 {
+	// Collect channels to remove to avoid iterator invalidation
+	std::vector<std::string> channelsToRemove;
+
+	for (std::map<std::string, Channel *>::iterator it = channels.begin(); it != channels.end(); ++it)
+	{
+		Channel *channel = it->second;
+		if (channel && channel->isUserInChannel(client_fd))
+		{
+			channel->removeUser(client_fd);
+			if (channel->isChannelEmpty())
+			{
+				channelsToRemove.push_back(channel->getName());
+			}
+		}
+	}
+
+	// Now safely remove empty channels
+	for (size_t i = 0; i < channelsToRemove.size(); ++i)
+	{
+		removeChannel(channelsToRemove[i]);
+	}
+
+	std::cout << "Removing client: " << client_fd << std::endl;
+
 	// Remove from clients map
 	std::map<int, Client *>::iterator it = clients.find(client_fd);
 	if (it != clients.end())
@@ -157,7 +181,7 @@ void Server::removeClient(int client_fd)
 
 void Server::handleClientData(pollfd &clientPfd)
 {
-	char buffer[1024];
+	char buffer[4096];
 	ssize_t bytes_read = recv(clientPfd.fd, buffer, sizeof(buffer) - 1, 0);
 
 	if (bytes_read <= 0)
@@ -189,6 +213,7 @@ void Server::handleClientData(pollfd &clientPfd)
 			{
 				IRCMessage ircMsg = CommandParser::parseMessage(message);
 				CommandExecuter::executeCommand(this, client, ircMsg);
+
 			}
 			clientPfd.events |= POLLOUT;
 		}

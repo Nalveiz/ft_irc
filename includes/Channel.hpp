@@ -6,7 +6,7 @@
 /*   By: soksak <soksak@42istanbul.com.tr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/04 00:19:22 by soksak            #+#    #+#             */
-/*   Updated: 2025/09/10 00:03:31 by soksak           ###   ########.fr       */
+/*   Updated: 2025/09/13 03:19:57 by soksak           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -65,6 +65,7 @@ public:
 	bool isInviteOnly() const;
 	void setTopicRestricted(bool restricted);
 	bool isTopicRestricted() const;
+	bool isChannelEmpty() const;
 
 	// Broadcast
 	void broadcast(const std::string &message, class Server* server, int exceptFd = -1);
