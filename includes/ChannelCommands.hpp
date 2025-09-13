@@ -6,7 +6,7 @@
 /*   By: soksak <soksak@42istanbul.com.tr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/11 00:00:00 by soksak            #+#    #+#             */
-/*   Updated: 2025/09/11 21:50:23 by soksak           ###   ########.fr       */
+/*   Updated: 2025/09/14 00:22:25 by soksak           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,7 +34,6 @@ class ChannelCommands
         static void handleKICK(Server* server, Client* client, const IRCMessage& msg);
         static void handleINVITE(Server* server, Client* client, const IRCMessage& msg);
         static void handleTOPIC(Server* server, Client* client, const IRCMessage& msg);
-        static void handleMODE(Server* server, Client* client, const IRCMessage& msg);
 
         // Helper function for basic command validation
         static bool validateBasicCommand(Server* server, Client* client, const IRCMessage& msg, const std::string& commandName);

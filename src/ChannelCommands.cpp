@@ -368,8 +368,3 @@ void ChannelCommands::handleTOPIC(Server *server, Client *client, const IRCMessa
 
 	std::cout << "Topic for " << channelName << " set to: " << newTopic << std::endl;
 }
-
-void ChannelCommands::handleMODE(Server *server, Client *client, const IRCMessage &msg)
-{
-	ModeHandler::handleMODE(server, client, msg);
-}

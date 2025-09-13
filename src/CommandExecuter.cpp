@@ -6,7 +6,7 @@
 /*   By: soksak <soksak@42istanbul.com.tr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/07 19:25:45 by soksak            #+#    #+#             */
-/*   Updated: 2025/09/13 19:28:00 by soksak           ###   ########.fr       */
+/*   Updated: 2025/09/14 00:37:55 by soksak           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,11 +33,11 @@ void CommandExecuter::executeCommand(Server *server, Client *client, const IRCMe
 
 	std::string cmd = msg.getCommand();
 
-	// Convert command to uppercase for case-insensitive comparison
-	for (size_t i = 0; i < cmd.length(); ++i)
-	{
-		cmd[i] = std::toupper(cmd[i]);
-	}
+	// // Convert command to uppercase for case-insensitive comparison
+	// for (size_t i = 0; i < cmd.length(); ++i)
+	// {
+	// 	cmd[i] = std::toupper(cmd[i]);
+	// }
 
 	std::cout << "Executing command: " << cmd << " for client " << client->getClientFd() << std::endl;
 
@@ -63,12 +63,14 @@ void CommandExecuter::executeCommand(Server *server, Client *client, const IRCMe
 	else if (cmd == "TOPIC")
 		ChannelCommands::handleTOPIC(server, client, msg);
 	else if (cmd == "MODE")
-		ChannelCommands::handleMODE(server, client, msg);
+		ModeHandler::handleMODE(server, client, msg);
 	else if (cmd == "PRIVMSG")
 		handlePRIVMSG(server, client, msg);
 	else
 	{
 		std::cout << "Unknown command: " << cmd << std::endl;
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorUnknownCommand(client->getNickname(), cmd));
 	}
 }
 
