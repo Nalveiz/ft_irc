@@ -33,7 +33,7 @@ void ModeHandler::handleMODE(Server *server, Client *client, const IRCMessage &m
 		// If no mode string provided, show current modes
 		if (msg.getParams().size() == 1)
 		{
-			std::string currentModes = getCurrentModes(channel);
+			std::string currentModes = getFullModeString(channel);
 			std::string modeReply = IRCResponse::createModeReply(client->getNickname(), target, currentModes);
 			client->writeAndEnablePollOut(server, modeReply);
 			return;
@@ -209,6 +209,42 @@ std::string ModeHandler::getCurrentModes(Channel *channel)
 		modes += "l";
 
 	return modes;
+}
+
+std::string ModeHandler::getFullModeString(Channel *channel)
+{
+	std::string modes = "+";
+	std::string modeParams = "";
+
+	if (channel->isInviteOnly())
+		modes += "i";
+	if (channel->isTopicRestricted())
+		modes += "t";
+	if (!channel->getKey().empty())
+	{
+		modes += "k";
+		if (!modeParams.empty())
+			modeParams += " ";
+		modeParams += channel->getKey();
+	}
+	if (channel->getUserLimit() > 0)
+	{
+		modes += "l";
+		if (!modeParams.empty())
+			modeParams += " ";
+		std::ostringstream oss;
+		oss << channel->getUserLimit();
+		modeParams += oss.str();
+	}
+
+	// Return full mode string with parameters
+	std::string fullModes = modes;
+	if (!modeParams.empty())
+	{
+		fullModes += " ";
+		fullModes += modeParams;
+	}
+	return fullModes;
 }
 
 bool ModeHandler::isValidModeChar(char mode)

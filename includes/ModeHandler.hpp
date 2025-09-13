@@ -18,6 +18,9 @@ public:
     // Main MODE command handler
     static void handleMODE(Server* server, Client* client, const IRCMessage& msg);
 
+    // Helper functions
+    static std::string getFullModeString(Channel* channel);
+
 private:
     // Channel mode handlers
     static void handleChannelMode(Server* server, Client* client, std::string& channel, std::string& modeString, std::vector<std::string>& params);

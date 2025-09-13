@@ -6,7 +6,7 @@
 /*   By: soksak <soksak@42istanbul.com.tr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/04 00:19:22 by soksak            #+#    #+#             */
-/*   Updated: 2025/09/13 03:19:57 by soksak           ###   ########.fr       */
+/*   Updated: 2025/09/13 20:06:36 by soksak           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 
 # include <string>
 # include <map>
+# include <set>
 # include <vector>
 # include <iostream>
 # include <sys/socket.h>
@@ -34,6 +35,7 @@ private:
 	bool                     _topicRestricted;
 	std::map<int, Client*>   _users;      // fd → Client*
 	std::map<int, Client*>   _operators;  // fd → Client*
+	std::set<int>            _invited;    // fd list of invited users
 
 public:
 	Channel(const std::string &name);
@@ -53,6 +55,11 @@ public:
 	bool isOperator(int fd) const;
 	void removeOperator(int fd);
 
+	// Invite management
+	void inviteUser(int fd);
+	bool isUserInvited(int fd) const;
+	void removeInvite(int fd);
+
 	// Topic management
 	void setTopic(const std::string &topic);
 
@@ -66,6 +73,7 @@ public:
 	void setTopicRestricted(bool restricted);
 	bool isTopicRestricted() const;
 	bool isChannelEmpty() const;
+	size_t getUserCount() const;
 
 	// Broadcast
 	void broadcast(const std::string &message, class Server* server, int exceptFd = -1);

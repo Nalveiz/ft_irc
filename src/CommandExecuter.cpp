@@ -6,7 +6,7 @@
 /*   By: soksak <soksak@42istanbul.com.tr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/07 19:25:45 by soksak            #+#    #+#             */
-/*   Updated: 2025/09/13 03:13:48 by soksak           ###   ########.fr       */
+/*   Updated: 2025/09/13 19:28:00 by soksak           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -90,7 +90,7 @@ void CommandExecuter::handlePASS(Server *server, Client *client, const IRCMessag
 
 	std::string password = msg.getParams()[0];
 
-	// Verify password against server password
+	// Verify password against server passwordq
 	if (password == server->getPassword())
 	{
 		client->setPassword(true);
@@ -162,12 +162,9 @@ void CommandExecuter::handleNICK(Server *server, Client *client, const IRCMessag
 		}
 		return;
 	}
+
 	if (client->isRegistered())
-	{
-		client->writeAndEnablePollOut(server,
-			IRCResponse::createNotice(newNick, "Your nick is set to " + newNick));
 		server->sendWelcome(client);
-	}
 }
 
 void CommandExecuter::handleUSER(Server *server, Client *client, const IRCMessage &msg)
@@ -197,11 +194,6 @@ void CommandExecuter::handleUSER(Server *server, Client *client, const IRCMessag
 	client->setRealname(realname);
 
 	std::cout << "Client " << client->getClientFd() << " set username to: " << username << ", realname: " << realname << std::endl;
-
-	// Send a notice to confirm user info acceptance
-	std::string userNick = client->getNickname().empty() ? "*" : client->getNickname();
-	client->writeAndEnablePollOut(server,
-		IRCResponse::createNotice(userNick, "User information accepted"));
 
 	// Send welcome if client is now fully registered
 	if (client->isRegistered())

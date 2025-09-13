@@ -3,6 +3,7 @@
 #include "../includes/Client.hpp"
 #include "../includes/Channel.hpp"
 #include "../includes/ModeHandler.hpp"
+#include <sstream>
 
 bool ChannelCommands::validateBasicCommand(Server *server, Client *client, const IRCMessage &msg, const std::string &commandName)
 {
@@ -73,26 +74,36 @@ void ChannelCommands::handleJOIN(Server *server, Client *client, const IRCMessag
 		}
 	}
 
+	// Check if user is already in the channel
+	if (channel->isUserInChannel(client->getClientFd()))
+	{
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createErrorUserOnChannel(client->getNickname(), channelName));
+		return;
+	}
+
 	// Check if channel is invite only
-	if (channel->isInviteOnly())
+	if (channel->isInviteOnly() && !channel->isUserInvited(client->getClientFd()))
 	{
 		client->writeAndEnablePollOut(server,
 			IRCResponse::createErrorInviteOnlyChannel(client->getNickname(), channelName));
 		return;
 	}
 
-	// Check if user is already in the channel
-	if (channel->isUserInChannel(client->getClientFd()))
+	// Check user limit
+	if (channel->getUserLimit() > 0 && channel->getUserCount() >= channel->getUserLimit())
 	{
-		// User is already in the channel - send appropriate message
 		client->writeAndEnablePollOut(server,
-			IRCResponse::createErrorUserOnChannel(client->getNickname(), channelName));
+			IRCResponse::createErrorChannelIsFull(client->getNickname(), channelName));
 		return;
 	}
 
 	// Attempt to add user to channel
 	if (channel->addUser(client))
 	{
+		// Remove from invite list if invited
+		channel->removeInvite(client->getClientFd());
+
 		// Send JOIN message to all users in channel (including the joining user)
 		channel->broadcast(IRCResponse::createJoin(client->getNickname(),
 			client->getUsername(), server->getHostname(), channelName), server, -1); // Send to all users in channel
@@ -103,20 +114,19 @@ void ChannelCommands::handleJOIN(Server *server, Client *client, const IRCMessag
 		// Send channel topic to the joining user (if topic exists)
 		std::string topic = channel->getTopic();
 		if (!topic.empty())
-		{
 			client->writeAndEnablePollOut(server,
 				IRCResponse::createTopicReply(client->getNickname(), channelName, topic));
-		}
 		else
-		{
 			client->writeAndEnablePollOut(server,
 				IRCResponse::createNoTopicReply(client->getNickname(), channelName));
-		}
+
+		// Send channel modes to the joining user
+		std::string fullModes = ModeHandler::getFullModeString(channel);
+		client->writeAndEnablePollOut(server,
+			IRCResponse::createModeReply(client->getNickname(), channelName, fullModes));
 	}
 	else
-	{
 		std::cout << "Failed to add user " << client->getNickname() << " to channel " << channelName << std::endl;
-	}
 }
 
 // Placeholder implementations - we'll copy the actual code from CommandExecuter.cpp
@@ -289,6 +299,9 @@ void ChannelCommands::handleINVITE(Server *server, Client *client, const IRCMess
 	// Send invite message
 	targetClient->writeAndEnablePollOut(server,
 		IRCResponse::createInvite(client->getNickname(), client->getUsername(), server->getHostname(), targetNick, channelName));
+
+	// Add to invite list
+	channel->inviteUser(targetClient->getClientFd());
 
 	// Send confirmation to inviter
 	client->writeAndEnablePollOut(server,

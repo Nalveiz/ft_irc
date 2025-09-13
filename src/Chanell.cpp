@@ -6,7 +6,7 @@
 /*   By: soksak <soksak@42istanbul.com.tr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/04 00:19:13 by soksak            #+#    #+#             */
-/*   Updated: 2025/09/13 07:26:12 by soksak           ###   ########.fr       */
+/*   Updated: 2025/09/13 20:08:00 by soksak           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,19 +33,17 @@ const std::string &Channel::getTopic() const
 	return _topic;
 }
 
+size_t Channel::getUserCount() const
+{
+	return _users.size();
+}
+
 bool Channel::addUser(Client *user)
 {
 	if (!user)
 		return false;
 
 	int fd = user->getClientFd();
-	if (_users.find(fd) != _users.end())
-		return false; // User already in channel
-
-	// Check user limit
-	if (_userLimit > 0 && _users.size() >= _userLimit)
-		return false;
-
 	_users[fd] = user;
 
 	// If channel is empty, make first user an operator
@@ -55,9 +53,7 @@ bool Channel::addUser(Client *user)
 		std::cout << "User " << user->getNickname() << " added to channel " << _name << " as operator" << std::endl;
 	}
 	else
-	{
 		std::cout << "User " << user->getNickname() << " added to channel " << _name << std::endl;
-	}
 
 	return true;
 }
@@ -153,12 +149,25 @@ const std::string &Channel::getKey() const
 
 size_t Channel::getUserLimit() const
 {
-	return _userLimit;
-}
-
-void Channel::removeOperator(int fd)
+    return _userLimit;
+}void Channel::removeOperator(int fd)
 {
 	_operators.erase(fd);
+}
+
+void Channel::inviteUser(int fd)
+{
+	_invited.insert(fd);
+}
+
+bool Channel::isUserInvited(int fd) const
+{
+	return _invited.find(fd) != _invited.end();
+}
+
+void Channel::removeInvite(int fd)
+{
+	_invited.erase(fd);
 }
 
 void Channel::broadcast(const std::string &message, Server *server, int exceptFd)

@@ -121,6 +121,13 @@ std::string IRCResponse::createErrorInviteOnlyChannel(const std::string& nick, c
     return oss.str();
 }
 
+std::string IRCResponse::createErrorChannelIsFull(const std::string& nick, const std::string& channel)
+{
+    std::ostringstream oss;
+    oss << ":server 471 " << nick << " " << channel << " :Cannot join channel (+l)\r\n";
+    return oss.str();
+}
+
 std::string IRCResponse::createErrorTopicOPrivsNeeded(const std::string& nick, const std::string& channel)
 {
     std::ostringstream oss;

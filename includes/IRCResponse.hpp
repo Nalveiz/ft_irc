@@ -24,6 +24,7 @@ public:
     static std::string createErrorUserNotInChannel(const std::string& nick, const std::string& target, const std::string& channel);
     static std::string createErrorUserOnChannel(const std::string& nick, const std::string& target, const std::string& channel);
     static std::string createErrorInviteOnlyChannel(const std::string& nick, const std::string& channel);
+    static std::string createErrorChannelIsFull(const std::string& nick, const std::string& channel);
     static std::string createErrorTopicOPrivsNeeded(const std::string& nick, const std::string& channel);
     static std::string createErrorBadChannelKey(const std::string& nick, const std::string& channel);
     static std::string createErrorUserOnChannel(const std::string& nick, const std::string& channel);
