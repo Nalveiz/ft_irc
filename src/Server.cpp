@@ -14,26 +14,25 @@
 
 bool Server::shouldStop = false;
 
-Server::Server(int &port, const std::string &password, const std::string &hostname) : port(port), password(password), hostname(hostname)
+Server::Server(const std::string &portStr, const std::string &password, const std::string &hostname) : password(password), hostname(hostname)
 {
 	std::cout << "Server initializing..." << std::endl;
 
+	checkArgPort(portStr);
+	checkArgPassword(password);
+	creationTime = getCurrentTime();
 	signal(SIGINT, Server::signalHandler);
-
 	this->serverSocket = socket(AF_INET, SOCK_STREAM, 0);
-
 	if (this->serverSocket < 0)
 	{
 		throw SocketCreationFailed();
 	}
 
-	creationTime = getCurrentTime();
 	int opt = 1;
 	if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
 	{
 		throw SocketCreationFailed();
 	}
-
 	this->serverAddress.sin_family = AF_INET;
 	this->serverAddress.sin_port = htons(this->port);
 	this->serverAddress.sin_addr.s_addr = INADDR_ANY;
@@ -386,6 +385,60 @@ const char *Server::NonBlockingFailed::what() const throw()
 const char *Server::PollFailed::what() const throw()
 {
 	return "Poll failed.";
+}
+
+const char *Server::InvalidPortNumber::what() const throw()
+{
+	return "Invalid port number. Port must be a number between 1024 and 65535.";
+}
+
+const char *Server::InvalidPassword::what() const throw()
+{
+	return "Invalid password. Password cannot be empty and must contain only valid characters.";
+}
+
+void Server::checkArgPort(const std::string &portStr)
+{
+	if (portStr.empty())
+	{
+		throw InvalidPortNumber();
+	}
+
+	for (size_t i = 0; i < portStr.length(); ++i)
+	{
+		if (!std::isdigit(portStr[i]))
+		{
+			throw InvalidPortNumber();
+		}
+	}
+
+	std::stringstream ss(portStr);
+	int portNum;
+	ss >> portNum;
+
+	if (portNum < 1024 || portNum > 65535)
+	{
+		throw InvalidPortNumber();
+	}
+
+	this->port = portNum;
+}
+
+void Server::checkArgPassword(const std::string &password)
+{
+	if (password.empty())
+	{
+		throw InvalidPassword();
+	}
+
+	for (size_t i = 0; i < password.length(); ++i)
+	{
+		char c = password[i];
+		if (!std::isprint(c) || std::isspace(c))
+		{
+			throw InvalidPassword();
+		}
+	}
 }
 
 void Server::signalHandler(int sig)

@@ -47,13 +47,17 @@ class Server
 		// Signal handling
 		static bool shouldStop;
 
+		// Private validation methods
+		void checkArgPort(const std::string &portStr);
+		void checkArgPassword(const std::string &password);
+
 		// Private copy constructor and assignment operator
 		Server(const Server &other);
 		Server &operator=(const Server &other);
 		Server();
 	public:
 		// Constructor and Destructor
-		Server(int &port, const std::string &password, const std::string &hostname);
+		Server(const std::string &portStr, const std::string &password, const std::string &hostname);
 		~Server();
 
 		// Main server methods
@@ -119,8 +123,20 @@ class Server
 			public:
 				const char *what() const throw();
 		};
-		
+
 		class PollFailed : public std::exception
+		{
+			public:
+				const char *what() const throw();
+		};
+
+		class InvalidPortNumber : public std::exception
+		{
+			public:
+				const char *what() const throw();
+		};
+
+		class InvalidPassword : public std::exception
 		{
 			public:
 				const char *what() const throw();
