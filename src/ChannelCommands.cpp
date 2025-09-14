@@ -1,9 +1,20 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   ChannelCommands.cpp                                :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: soksak <soksak@42istanbul.com.tr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/09/14 23:18:37 by soksak            #+#    #+#             */
+/*   Updated: 2025/09/14 23:19:13 by soksak           ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "../includes/ChannelCommands.hpp"
 #include "../includes/Server.hpp"
 #include "../includes/Client.hpp"
 #include "../includes/Channel.hpp"
 #include "../includes/ModeHandler.hpp"
-#include <sstream>
 
 bool ChannelCommands::validateBasicCommand(Server *server, Client *client, const IRCMessage &msg, const std::string &commandName)
 {
@@ -31,13 +42,11 @@ void ChannelCommands::handleJOIN(Server *server, Client *client, const IRCMessag
 
 	std::string channelName = msg.getParams()[0];
 
-	// Ensure channel name starts with #
 	if (channelName[0] != '#')
 	{
 		channelName = "#" + channelName;
 	}
 
-	// Validate channel name format
 	if (!Channel::isValidChannelName(channelName))
 	{
 		client->writeAndEnablePollOut(server,
@@ -45,7 +54,6 @@ void ChannelCommands::handleJOIN(Server *server, Client *client, const IRCMessag
 		return;
 	}
 
-	// Get existing channel or create new one
 	Channel *channel = server->getChannel(channelName);
 	if (!channel)
 	{
@@ -57,7 +65,6 @@ void ChannelCommands::handleJOIN(Server *server, Client *client, const IRCMessag
 		}
 	}
 
-	// Check channel key if channel has a password
 	if (!channel->getKey().empty())
 	{
 		std::string providedKey;
@@ -74,7 +81,6 @@ void ChannelCommands::handleJOIN(Server *server, Client *client, const IRCMessag
 		}
 	}
 
-	// Check if user is already in the channel
 	if (channel->isUserInChannel(client->getClientFd()))
 	{
 		client->writeAndEnablePollOut(server,
@@ -82,7 +88,6 @@ void ChannelCommands::handleJOIN(Server *server, Client *client, const IRCMessag
 		return;
 	}
 
-	// Check if channel is invite only
 	if (channel->isInviteOnly() && !channel->isUserInvited(client->getClientFd()))
 	{
 		client->writeAndEnablePollOut(server,
@@ -90,7 +95,6 @@ void ChannelCommands::handleJOIN(Server *server, Client *client, const IRCMessag
 		return;
 	}
 
-	// Check user limit
 	if (channel->getUserLimit() > 0 && channel->getUserCount() >= channel->getUserLimit())
 	{
 		client->writeAndEnablePollOut(server,
@@ -98,20 +102,15 @@ void ChannelCommands::handleJOIN(Server *server, Client *client, const IRCMessag
 		return;
 	}
 
-	// Attempt to add user to channel
 	if (channel->addUser(client))
 	{
-		// Remove from invite list if invited
 		channel->removeInvite(client->getClientFd());
 
-		// Send JOIN message to all users in channel (including the joining user)
 		channel->broadcast(IRCResponse::createJoin(client->getNickname(),
-			client->getUsername(), server->getHostname(), channelName), server, -1); // Send to all users in channel
+			client->getUsername(), server->getHostname(), channelName), server, -1);
 
-		// Send channel user list (NAMES reply)
 		channel->sendUserList(server, client);
 
-		// Send channel topic to the joining user (if topic exists)
 		std::string topic = channel->getTopic();
 		if (!topic.empty())
 			client->writeAndEnablePollOut(server,
@@ -120,7 +119,6 @@ void ChannelCommands::handleJOIN(Server *server, Client *client, const IRCMessag
 			client->writeAndEnablePollOut(server,
 				IRCResponse::createNoTopicReply(client->getNickname(), channelName));
 
-		// Send channel modes to the joining user
 		std::string fullModes = ModeHandler::getFullModeString(channel);
 		client->writeAndEnablePollOut(server,
 			IRCResponse::createModeReply(client->getNickname(), channelName, fullModes));
@@ -129,7 +127,6 @@ void ChannelCommands::handleJOIN(Server *server, Client *client, const IRCMessag
 		std::cout << "Failed to add user " << client->getNickname() << " to channel " << channelName << std::endl;
 }
 
-// Placeholder implementations - we'll copy the actual code from CommandExecuter.cpp
 void ChannelCommands::handlePART(Server *server, Client *client, const IRCMessage &msg)
 {
 	if (!validateBasicCommand(server, client, msg, "PART"))
@@ -154,11 +151,9 @@ void ChannelCommands::handlePART(Server *server, Client *client, const IRCMessag
 
 	std::string reason = msg.getTrailing().empty() ? "Leaving" : msg.getTrailing();
 
-	// Send PART message to all users in channel
 	std::string partMsg = IRCResponse::createPart(client->getNickname(), client->getUsername(), server->getHostname(), channelName);
-	channel->broadcast(partMsg, server, -1); // Send to all users in channel
+	channel->broadcast(partMsg, server, -1);
 
-	// Remove user from channel
 	channel->removeUser(client->getClientFd());
 
 	if (channel->isChannelEmpty())
@@ -195,7 +190,6 @@ void ChannelCommands::handleKICK(Server *server, Client *client, const IRCMessag
 		return;
 	}
 
-	// Check if kicker is in the channel
 	if (!channel->isUserInChannel(client->getClientFd()))
 	{
 		client->writeAndEnablePollOut(server,
@@ -203,7 +197,6 @@ void ChannelCommands::handleKICK(Server *server, Client *client, const IRCMessag
 		return;
 	}
 
-	// Check if kicker is an operator
 	if (!channel->isOperator(client->getClientFd()))
 	{
 		client->writeAndEnablePollOut(server,
@@ -211,7 +204,6 @@ void ChannelCommands::handleKICK(Server *server, Client *client, const IRCMessag
 		return;
 	}
 
-	// Find target user
 	Client *targetClient = server->getClientByNickname(targetNick);
 	if (!targetClient)
 	{
@@ -220,7 +212,6 @@ void ChannelCommands::handleKICK(Server *server, Client *client, const IRCMessag
 		return;
 	}
 
-	// Check if target is in the channel
 	if (!channel->isUserInChannel(targetClient->getClientFd()))
 	{
 		client->writeAndEnablePollOut(server,
@@ -228,11 +219,9 @@ void ChannelCommands::handleKICK(Server *server, Client *client, const IRCMessag
 		return;
 	}
 
-	// Send KICK message to all users in channel
 	std::string kickMsg = IRCResponse::createKick(client->getNickname(), client->getUsername(), server->getHostname(), channelName, targetNick, reason);
 	channel->broadcast(kickMsg, server, -1);
 
-	// Remove target user from channel
 	channel->removeUser(targetClient->getClientFd());
 
 	if (channel->isChannelEmpty())
@@ -262,7 +251,6 @@ void ChannelCommands::handleINVITE(Server *server, Client *client, const IRCMess
 	std::string targetNick = msg.getParams()[0];
 	std::string channelName = msg.getParams()[1];
 
-	// Find target user
 	Client *targetClient = server->getClientByNickname(targetNick);
 	if (!targetClient)
 	{
@@ -271,7 +259,6 @@ void ChannelCommands::handleINVITE(Server *server, Client *client, const IRCMess
 		return;
 	}
 
-	// Check if channel exists
 	Channel *channel = server->getChannel(channelName);
 	if (!channel)
 	{
@@ -280,7 +267,6 @@ void ChannelCommands::handleINVITE(Server *server, Client *client, const IRCMess
 		return;
 	}
 
-	// Check if inviter is in the channel
 	if (!channel->isUserInChannel(client->getClientFd()))
 	{
 		client->writeAndEnablePollOut(server,
@@ -288,7 +274,6 @@ void ChannelCommands::handleINVITE(Server *server, Client *client, const IRCMess
 		return;
 	}
 
-	// Check if target is already in channel
 	if (channel->isUserInChannel(targetClient->getClientFd()))
 	{
 		client->writeAndEnablePollOut(server,
@@ -296,14 +281,11 @@ void ChannelCommands::handleINVITE(Server *server, Client *client, const IRCMess
 		return;
 	}
 
-	// Send invite message
 	targetClient->writeAndEnablePollOut(server,
 		IRCResponse::createInvite(client->getNickname(), client->getUsername(), server->getHostname(), targetNick, channelName));
 
-	// Add to invite list
 	channel->inviteUser(targetClient->getClientFd());
 
-	// Send confirmation to inviter
 	client->writeAndEnablePollOut(server,
 		IRCResponse::createInviting(client->getNickname(), targetNick, channelName));
 
@@ -325,7 +307,6 @@ void ChannelCommands::handleTOPIC(Server *server, Client *client, const IRCMessa
 		return;
 	}
 
-	// Check if user is in channel
 	if (!channel->isUserInChannel(client->getClientFd()))
 	{
 		client->writeAndEnablePollOut(server,
@@ -333,7 +314,6 @@ void ChannelCommands::handleTOPIC(Server *server, Client *client, const IRCMessa
 		return;
 	}
 
-	// If no trailing parameter, display current topic
 	if (msg.getTrailing().empty())
 	{
 		std::string currentTopic = channel->getTopic();
@@ -350,7 +330,6 @@ void ChannelCommands::handleTOPIC(Server *server, Client *client, const IRCMessa
 		return;
 	}
 
-	// Check if channel is +t (topic restricted) and user is not operator
 	if (channel->isTopicRestricted() && !channel->isOperator(client->getClientFd()))
 	{
 		client->writeAndEnablePollOut(server,
@@ -358,11 +337,9 @@ void ChannelCommands::handleTOPIC(Server *server, Client *client, const IRCMessa
 		return;
 	}
 
-	// Set new topic
 	std::string newTopic = msg.getTrailing();
 	channel->setTopic(newTopic);
 
-	// Broadcast topic change to all users in channel
 	std::string topicMsg = IRCResponse::createTopic(client->getNickname(), client->getUsername(), server->getHostname(), channelName, newTopic);
 	channel->broadcast(topicMsg, server, -1);
 

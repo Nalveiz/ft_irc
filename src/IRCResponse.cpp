@@ -1,6 +1,17 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   IRCResponse.cpp                                    :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: soksak <soksak@42istanbul.com.tr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/09/14 23:18:17 by soksak            #+#    #+#             */
+/*   Updated: 2025/09/14 23:18:18 by soksak           ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "../includes/IRCResponse.hpp"
 
-// Error responses
 std::string IRCResponse::createErrorNeedMoreParams(const std::string &nick, const std::string &command)
 {
 	std::ostringstream oss;
@@ -148,7 +159,6 @@ std::string IRCResponse::createErrorUserOnChannel(const std::string &nick, const
 	return oss.str();
 }
 
-// Success responses
 std::string IRCResponse::createWelcome(const std::string &nick, const std::string &user, const std::string &host)
 {
 	std::ostringstream oss;
@@ -173,8 +183,6 @@ std::string IRCResponse::createCreated(const std::string &nick, const std::strin
 std::string IRCResponse::createMyInfo(const std::string &nick, const std::string &serverName)
 {
 	std::ostringstream oss;
-	// Format: 004 <nick> <servername> <version> <available user modes> <available channel modes>
-	// Channel modes: i(invite-only), t(topic-restricted), k(key), l(limit), o(operator)
 	oss << ":server 004 " << nick << " " << serverName << " 1.0 o itklo\r\n";
 	return oss.str();
 }
@@ -182,10 +190,6 @@ std::string IRCResponse::createMyInfo(const std::string &nick, const std::string
 std::string IRCResponse::createISupport(const std::string &nick)
 {
 	std::ostringstream oss;
-	// 005 ISUPPORT - Advertise server features
-	// CHANMODES: Channel modes organized by type
-	// PREFIX: User prefixes (operator @)
-	// CHANTYPES: Supported channel types (#)
 	oss << ":server 005 " << nick << " CHANMODES=,,,itkl PREFIX=(o)@ CHANTYPES=# :are supported by this server\r\n";
 	return oss.str();
 }
@@ -274,7 +278,6 @@ std::string IRCResponse::createNoTopicReply(const std::string &nick, const std::
 	return oss.str();
 }
 
-// NOTICE responses
 std::string IRCResponse::createNotice(const std::string &nick, const std::string &message)
 {
 	std::ostringstream oss;
@@ -282,7 +285,6 @@ std::string IRCResponse::createNotice(const std::string &nick, const std::string
 	return oss.str();
 }
 
-// NICK change response
 std::string IRCResponse::createNickChange(const std::string &oldNick, const std::string &user, const std::string &host, const std::string &newNick)
 {
 	std::ostringstream oss;
@@ -290,7 +292,6 @@ std::string IRCResponse::createNickChange(const std::string &oldNick, const std:
 	return oss.str();
 }
 
-// PRIVMSG response
 std::string IRCResponse::createPrivmsg(const std::string &nick, const std::string &user, const std::string &host, const std::string &target, const std::string &message)
 {
 	std::ostringstream oss;
@@ -298,7 +299,6 @@ std::string IRCResponse::createPrivmsg(const std::string &nick, const std::strin
 	return oss.str();
 }
 
-// MODE responses
 std::string IRCResponse::createModeReply(const std::string &nick, const std::string &channel, const std::string &modes)
 {
 	std::ostringstream oss;

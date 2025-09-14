@@ -6,7 +6,7 @@
 /*   By: soksak <soksak@42istanbul.com.tr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/07 19:26:48 by soksak            #+#    #+#             */
-/*   Updated: 2025/09/14 00:06:04 by soksak           ###   ########.fr       */
+/*   Updated: 2025/09/14 23:23:36 by soksak           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,7 +33,6 @@ class CommandParser
 		static bool isValidCommand(const std::string& command);
 
 	private:
-		// Private constructor - this is a utility class with static methods only
 		CommandParser();
 		CommandParser(const CommandParser& other);
 		CommandParser& operator=(const CommandParser& other);

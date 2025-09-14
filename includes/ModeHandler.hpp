@@ -8,31 +8,24 @@
 #include "IRCMessage.hpp"
 #include "IRCResponse.hpp"
 
-// Forward declarations
 class Server;
 class Client;
 class Channel;
+
 class ModeHandler
 {
 public:
-    // Main MODE command handler
-    static void handleMODE(Server* server, Client* client, const IRCMessage& msg);
-
-    // Helper functions
-    static std::string getFullModeString(Channel* channel);
+	static void handleMODE(Server *server, Client *client, const IRCMessage &msg);
+	static std::string getFullModeString(Channel *channel);
 
 private:
-    // Channel mode handlers
-    static void handleChannelMode(Server* server, Client* client, std::string& channel, std::string& modeString, std::vector<std::string>& params);
+	static void handleChannelMode(Server *server, Client *client, std::string &channel, std::string &modeString, std::vector<std::string> &params);
+	static std::string getCurrentModes(Channel *channel);
+	static bool isValidModeChar(char mode);
 
-    // Helper functions
-    static std::string getCurrentModes(Channel* channel);
-    static bool isValidModeChar(char mode);
-
-    // Private constructor - utility class only
-    ModeHandler();
-    ModeHandler(const ModeHandler& other);
-    ModeHandler& operator=(const ModeHandler& other);
+	ModeHandler();
+	ModeHandler(const ModeHandler &other);
+	ModeHandler &operator=(const ModeHandler &other);
 };
 
 #endif

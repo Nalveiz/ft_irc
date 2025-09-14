@@ -24,7 +24,6 @@ Client::~Client()
 	std::cout << "Client " << _client_fd << " destroyed." << std::endl;
 }
 
-// Getters
 int Client::getClientFd() const
 {
 	return _client_fd;
@@ -76,7 +75,6 @@ bool Client::hasUser() const
 	return _hasUser;
 }
 
-// Setters
 void Client::setNickname(const std::string& nickname)
 {
 	_nickname = nickname;
@@ -107,7 +105,6 @@ void Client::setRegistered(bool registered)
 	_isRegistered = registered;
 }
 
-// Buffer operations
 void Client::appendToReadBuffer(const std::string& data)
 {
 	_readBuffer += data;
@@ -128,7 +125,6 @@ void Client::clearSendBuffer()
 	_sendBuffer.clear();
 }
 
-// Private helper function
 void Client::updateRegistrationStatus()
 {
 	if (_hasPassword && _hasNick && _hasUser && !_isRegistered)
@@ -149,13 +145,11 @@ bool Client::isValidNickname(const std::string& nickname)
 	if (nickname.empty() || nickname.length() > 9)
 		return false;
 
-	// First character must be letter or special char
 	char first = nickname[0];
 	if (!std::isalpha(first) && first != '[' && first != ']' &&
 		first != '{' && first != '}' && first != '\\' && first != '|')
 		return false;
 
-	// Subsequent characters can be letters, digits, or special chars
 	for (size_t i = 1; i < nickname.length(); ++i)
 	{
 		char c = nickname[i];

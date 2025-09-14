@@ -1,9 +1,20 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Server.cpp                                         :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: soksak <soksak@42istanbul.com.tr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/09/14 23:18:10 by soksak            #+#    #+#             */
+/*   Updated: 2025/09/14 23:18:10 by soksak           ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "../includes/Server.hpp"
 
 Server::Server(int &port, const std::string &password, const std::string &hostname) : port(port), password(password), hostname(hostname)
 {
 	std::cout << "Server initializing..." << std::endl;
-	// Create a socket, first things first
 	this->serverSocket = socket(AF_INET, SOCK_STREAM, 0);
 
 	if (this->serverSocket < 0)
@@ -11,7 +22,7 @@ Server::Server(int &port, const std::string &password, const std::string &hostna
 		throw SocketCreationFailed();
 	}
 
-	// Set socket options to reuse address
+	creationTime = getCurrentTime();
 	int opt = 1;
 	if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
 	{
@@ -23,7 +34,6 @@ Server::Server(int &port, const std::string &password, const std::string &hostna
 	this->serverAddress.sin_addr.s_addr = INADDR_ANY;
 	setNonBlocking(this->serverSocket);
 
-	// Add server socket to poll_fds
 	pollfd server_pollfd;
 	server_pollfd.fd = serverSocket;
 	server_pollfd.events = POLLIN;
@@ -33,12 +43,10 @@ Server::Server(int &port, const std::string &password, const std::string &hostna
 
 void Server::bindAndListen()
 {
-	// Bind the socket to the address and port, this is important.
 	if (bind(this->serverSocket, (struct sockaddr *)&this->serverAddress, sizeof(this->serverAddress)) < 0)
 	{
 		throw SocketBindFailed();
 	}
-	// listen is gonna change this is the test..
 	if (listen(this->serverSocket, SOMAXCONN) < 0)
 	{
 		throw SocketListenFailed();
@@ -50,7 +58,6 @@ void Server::runServer()
 {
 	while (true)
 	{
-		// Use poll to wait for events
 		int poll_count = poll(&poll_fds[0], poll_fds.size(), -1);
 
 		if (poll_count < 0)
@@ -59,14 +66,12 @@ void Server::runServer()
 			break;
 		}
 
-		// Check all file descriptors
 		for (size_t i = 0; i < poll_fds.size(); ++i)
 		{
 			if (poll_fds[i].revents & POLLIN)
 			{
 				if (poll_fds[i].fd == serverSocket)
 				{
-					// New client connection
 					int client_fd = accept(serverSocket, NULL, NULL);
 					if (client_fd >= 0)
 						addClient(client_fd);
@@ -78,19 +83,19 @@ void Server::runServer()
 			{
 				if (poll_fds[i].fd != serverSocket)
 				{
-					// Send data to client
-					std::map<int, Client *>::iterator it = clients.find(poll_fds[i].fd);
-					if (it != clients.end())
+					if (poll_fds[i].events & POLLOUT)
 					{
-						Client *client = it->second;
-						std::string &sendBuffer = client->getSendBuffer();
-						if (!sendBuffer.empty())
+						std::map<int, Client *>::iterator it = clients.find(poll_fds[i].fd);
+						if (it != clients.end())
 						{
-							std::cout << "Sending to client " << client->getClientFd() << ": " << sendBuffer << std::endl;
-							sendToClient(client->getClientFd(), sendBuffer);
-							client->clearSendBuffer();
+							Client *client = it->second;
+							std::string sendBuffer = client->getSendBuffer();
+							if (!sendBuffer.empty())
+							{
+								std::cout << "Sending to client " << client->getClientFd() << ": " << sendBuffer << std::endl;
+								sendToClient(poll_fds[i], client);
+							}
 						}
-						poll_fds[i].events &= ~POLLOUT; // Clear POLLOUT until there's more data to send
 					}
 				}
 			}
@@ -115,7 +120,6 @@ void Server::addClient(int client_fd)
 		Client *newClient = new Client(client_fd);
 		clients[client_fd] = newClient;
 
-		// Add to poll_fds
 		pollfd client_pollfd;
 		client_pollfd.fd = client_fd;
 		client_pollfd.events = POLLIN;
@@ -133,7 +137,6 @@ void Server::addClient(int client_fd)
 
 void Server::removeClient(int client_fd)
 {
-	// Collect channels to remove to avoid iterator invalidation
 	std::vector<std::string> channelsToRemove;
 
 	for (std::map<std::string, Channel *>::iterator it = channels.begin(); it != channels.end(); ++it)
@@ -149,7 +152,6 @@ void Server::removeClient(int client_fd)
 		}
 	}
 
-	// Now safely remove empty channels
 	for (size_t i = 0; i < channelsToRemove.size(); ++i)
 	{
 		removeChannel(channelsToRemove[i]);
@@ -157,7 +159,6 @@ void Server::removeClient(int client_fd)
 
 	std::cout << "Removing client: " << client_fd << std::endl;
 
-	// Remove from clients map
 	std::map<int, Client *>::iterator it = clients.find(client_fd);
 	if (it != clients.end())
 	{
@@ -165,7 +166,6 @@ void Server::removeClient(int client_fd)
 		clients.erase(it);
 	}
 
-	// Remove from poll_fds
 	for (std::vector<pollfd>::iterator it = poll_fds.begin(); it != poll_fds.end(); ++it)
 	{
 		if (it->fd == client_fd)
@@ -186,7 +186,6 @@ void Server::handleClientData(pollfd &clientPfd)
 
 	if (bytes_read <= 0)
 	{
-		// Client disconnected
 		removeClient(clientPfd.fd);
 		return;
 	}
@@ -194,13 +193,11 @@ void Server::handleClientData(pollfd &clientPfd)
 	buffer[bytes_read] = '\0';
 	std::cout << "Received from client " << clientPfd.fd << ": " << buffer << std::endl;
 
-	// Find the client
 	std::map<int, Client *>::iterator it = clients.find(clientPfd.fd);
 	if (it != clients.end())
 	{
 		Client *client = it->second;
 		client->appendToReadBuffer(std::string(buffer));
-		// Process complete IRC messages (ending with \r\n)
 		std::string &readBuffer = client->getReadBuffer();
 		size_t pos = 0;
 
@@ -213,26 +210,30 @@ void Server::handleClientData(pollfd &clientPfd)
 			{
 				IRCMessage ircMsg = CommandParser::parseMessage(message);
 				CommandExecuter::executeCommand(this, client, ircMsg);
-
 			}
-			clientPfd.events |= POLLOUT;
 		}
 	}
 }
 
-void Server::sendToClient(int client_fd, const std::string &message)
+void Server::sendToClient(pollfd &clientPfd, Client *client)
 {
-	send(client_fd, message.c_str(), message.length(), 0);
+	int bytes_sent = send(clientPfd.fd, client->getSendBuffer().c_str(), client->getSendBuffer().length(), 0);
+	if (bytes_sent > 0)
+	{
+		client->getSendBuffer().erase(0, bytes_sent);
+		if (client->getSendBuffer().empty())
+			clientPfd.events &= ~POLLOUT;
+	}
 }
 
 void Server::markClientForSending(int client_fd)
 {
-	// Find the client's pollfd and mark it for sending
 	for (size_t i = 0; i < poll_fds.size(); ++i)
 	{
 		if (poll_fds[i].fd == client_fd)
 		{
-			poll_fds[i].events |= POLLOUT;
+			if (!(poll_fds[i].events & POLLOUT))
+				poll_fds[i].events |= POLLOUT;
 			break;
 		}
 	}
@@ -240,14 +241,12 @@ void Server::markClientForSending(int client_fd)
 
 Server::~Server()
 {
-	// Clean up all channels
 	for (std::map<std::string, Channel *>::iterator it = channels.begin(); it != channels.end(); ++it)
 	{
 		delete it->second;
 	}
 	channels.clear();
 
-	// Clean up all clients
 	for (std::map<int, Client *>::iterator it = clients.begin(); it != clients.end(); ++it)
 	{
 		delete it->second;
@@ -278,38 +277,38 @@ const std::string &Server::getHostname() const
 	return this->hostname;
 }
 
-std::map<int, Client*>& Server::getClients()
+std::map<int, Client *> &Server::getClients()
 {
 	return this->clients;
 }
 
-std::map<std::string, Channel*>& Server::getChannels()
+std::map<std::string, Channel *> &Server::getChannels()
 {
 	return this->channels;
 }
 
-Channel* Server::createChannel(const std::string& name)
+Channel *Server::createChannel(const std::string &name)
 {
 	if (channels.find(name) != channels.end())
-		return channels[name]; // Channel already exists
+		return channels[name];
 
-	Channel* newChannel = new Channel(name);
+	Channel *newChannel = new Channel(name);
 	channels[name] = newChannel;
 	std::cout << "Channel " << name << " created" << std::endl;
 	return newChannel;
 }
 
-Channel* Server::getChannel(const std::string& name)
+Channel *Server::getChannel(const std::string &name)
 {
-	std::map<std::string, Channel*>::iterator it = channels.find(name);
+	std::map<std::string, Channel *>::iterator it = channels.find(name);
 	if (it != channels.end())
 		return it->second;
 	return NULL;
 }
 
-void Server::removeChannel(const std::string& name)
+void Server::removeChannel(const std::string &name)
 {
-	std::map<std::string, Channel*>::iterator it = channels.find(name);
+	std::map<std::string, Channel *>::iterator it = channels.find(name);
 	if (it != channels.end())
 	{
 		delete it->second;
@@ -318,9 +317,9 @@ void Server::removeChannel(const std::string& name)
 	}
 }
 
-Client* Server::getClientByNickname(const std::string& nickname)
+Client *Server::getClientByNickname(const std::string &nickname)
 {
-	for (std::map<int, Client*>::iterator it = clients.begin(); it != clients.end(); ++it)
+	for (std::map<int, Client *>::iterator it = clients.begin(); it != clients.end(); ++it)
 	{
 		if (it->second->getNickname() == nickname)
 			return it->second;
@@ -328,20 +327,19 @@ Client* Server::getClientByNickname(const std::string& nickname)
 	return NULL;
 }
 
-
 std::string Server::getCurrentTime()
 {
-    time_t now = time(NULL);
-    char buf[64];
-    strftime(buf, sizeof(buf), "%c", localtime(&now));
-    return std::string(buf);
+	time_t now = time(NULL);
+	char buf[64];
+	strftime(buf, sizeof(buf), "%c", localtime(&now));
+	return std::string(buf);
 }
 
-void Server::sendWelcome(Client* client)
+void Server::sendWelcome(Client *client)
 {
 	client->writeAndEnablePollOut(this, IRCResponse::createWelcome(client->getNickname(), client->getUsername(), hostname));
 	client->writeAndEnablePollOut(this, IRCResponse::createYourHost(client->getNickname(), hostname));
-	client->writeAndEnablePollOut(this, IRCResponse::createCreated(client->getNickname(), getCurrentTime()));
+	client->writeAndEnablePollOut(this, IRCResponse::createCreated(client->getNickname(), creationTime));
 	client->writeAndEnablePollOut(this, IRCResponse::createMyInfo(client->getNickname(), hostname));
 	client->writeAndEnablePollOut(this, IRCResponse::createISupport(client->getNickname()));
 

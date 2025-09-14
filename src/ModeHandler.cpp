@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   ModeHandler.cpp                                    :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: soksak <soksak@42istanbul.com.tr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/09/14 23:18:03 by soksak            #+#    #+#             */
+/*   Updated: 2025/09/14 23:18:04 by soksak           ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "../includes/ModeHandler.hpp"
 #include "../includes/Server.hpp"
 #include "../includes/Client.hpp"
@@ -11,7 +23,6 @@ void ModeHandler::handleMODE(Server *server, Client *client, const IRCMessage &m
 
 	std::string target = msg.getParams()[0];
 
-	// Check if target is a channel (starts with #)
 	if (target[0] == '#')
 	{
 		Channel *channel = server->getChannel(target);
@@ -22,7 +33,6 @@ void ModeHandler::handleMODE(Server *server, Client *client, const IRCMessage &m
 			return;
 		}
 
-		// Check if user is in channel
 		if (!channel->isUserInChannel(client->getClientFd()))
 		{
 			client->writeAndEnablePollOut(server,
@@ -30,7 +40,6 @@ void ModeHandler::handleMODE(Server *server, Client *client, const IRCMessage &m
 			return;
 		}
 
-		// If no mode string provided, show current modes
 		if (msg.getParams().size() == 1)
 		{
 			std::string currentModes = getFullModeString(channel);
@@ -39,7 +48,6 @@ void ModeHandler::handleMODE(Server *server, Client *client, const IRCMessage &m
 			return;
 		}
 
-		// Parse mode changes
 		std::string modeString = msg.getParams()[1];
 		std::vector<std::string> params;
 		for (size_t i = 2; i < msg.getParams().size(); ++i)
@@ -51,7 +59,6 @@ void ModeHandler::handleMODE(Server *server, Client *client, const IRCMessage &m
 	}
 	else
 	{
-		// User modes not implemented yet
 		client->writeAndEnablePollOut(server,
 			IRCResponse::createUnknownModeFlag(client->getNickname()));
 	}
@@ -63,7 +70,6 @@ void ModeHandler::handleChannelMode(Server *server, Client *client, std::string 
 	if (!channel)
 		return;
 
-	// Check if user is operator (required for most mode changes)
 	if (!channel->isOperator(client->getClientFd()))
 	{
 		client->writeAndEnablePollOut(server,
@@ -93,7 +99,6 @@ void ModeHandler::handleChannelMode(Server *server, Client *client, std::string 
 
 		if (!isValidModeChar(c))
 		{
-			// Send unknown mode flag error to client
 			client->writeAndEnablePollOut(server,
 				IRCResponse::createUnknownModeFlag(client->getNickname()));
 			continue;
@@ -102,7 +107,7 @@ void ModeHandler::handleChannelMode(Server *server, Client *client, std::string 
 		bool changed = false;
 		switch (c)
 		{
-		case 'i': // Invite-only
+		case 'i':
 			if (channel->isInviteOnly() != adding)
 			{
 				channel->setInviteOnly(adding);
@@ -110,7 +115,7 @@ void ModeHandler::handleChannelMode(Server *server, Client *client, std::string 
 			}
 			break;
 
-		case 't': // Topic restricted
+		case 't':
 			if (channel->isTopicRestricted() != adding)
 			{
 				channel->setTopicRestricted(adding);
@@ -118,7 +123,7 @@ void ModeHandler::handleChannelMode(Server *server, Client *client, std::string 
 			}
 			break;
 
-		case 'k': // Channel key
+		case 'k':
 			if (adding && paramIndex < params.size())
 			{
 				channel->setKey(params[paramIndex]);
@@ -135,7 +140,7 @@ void ModeHandler::handleChannelMode(Server *server, Client *client, std::string 
 			}
 			break;
 
-		case 'l': // User limit
+		case 'l':
 			if (adding && paramIndex < params.size())
 			{
 				int limit = atoi(params[paramIndex].c_str());
@@ -156,7 +161,7 @@ void ModeHandler::handleChannelMode(Server *server, Client *client, std::string 
 			}
 			break;
 
-		case 'o': // Operator privilege
+		case 'o':
 			if (paramIndex < params.size())
 			{
 				Client *targetClient = server->getClientByNickname(params[paramIndex]);
@@ -187,7 +192,6 @@ void ModeHandler::handleChannelMode(Server *server, Client *client, std::string 
 		}
 	}
 
-	// Broadcast mode change to all users in channel
 	if (!appliedModes.empty())
 	{
 		std::string modeMsg = IRCResponse::createModeChange(client->getNickname(), client->getUsername(), server->getHostname(), channelName, appliedModes + (!modeParams.empty() ? " " + modeParams : ""));
@@ -237,7 +241,6 @@ std::string ModeHandler::getFullModeString(Channel *channel)
 		modeParams += oss.str();
 	}
 
-	// Return full mode string with parameters
 	std::string fullModes = modes;
 	if (!modeParams.empty())
 	{

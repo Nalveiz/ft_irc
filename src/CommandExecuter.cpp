@@ -6,16 +6,9 @@
 /*   By: soksak <soksak@42istanbul.com.tr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/07 19:25:45 by soksak            #+#    #+#             */
-/*   Updated: 2025/09/14 00:37:55 by soksak           ###   ########.fr       */
+/*   Updated: 2025/09/15 01:06:37 by soksak           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
-
-/**
- * CommandExecuter - IRC Command Execution Engine
- *
- * This file contains the implementation of IRC command handlers.
- * Each IRC command (PASS, NICK, USER, etc.) has its own handler function.
- */
 
 #include "../includes/CommandExecuter.hpp"
 #include "../includes/Server.hpp"
@@ -33,15 +26,13 @@ void CommandExecuter::executeCommand(Server *server, Client *client, const IRCMe
 
 	std::string cmd = msg.getCommand();
 
-	// // Convert command to uppercase for case-insensitive comparison
-	// for (size_t i = 0; i < cmd.length(); ++i)
-	// {
-	// 	cmd[i] = std::toupper(cmd[i]);
-	// }
+	for (size_t i = 0; i < cmd.length(); ++i)
+	{
+		cmd[i] = std::toupper(cmd[i]);
+	}
 
 	std::cout << "Executing command: " << cmd << " for client " << client->getClientFd() << std::endl;
 
-	// Command routing - each command has its own handler
 	if (cmd == "PASS")
 		handlePASS(server, client, msg);
 	else if (cmd == "NICK")
@@ -92,12 +83,10 @@ void CommandExecuter::handlePASS(Server *server, Client *client, const IRCMessag
 
 	std::string password = msg.getParams()[0];
 
-	// Verify password against server passwordq
 	if (password == server->getPassword())
 	{
 		client->setPassword(true);
 		std::cout << "Client " << client->getClientFd() << " provided correct password" << std::endl;
-		// Send a notice to confirm password acceptance
 		client->writeAndEnablePollOut(server,
 			IRCResponse::createNotice("*", "Password accepted"));
 	}
@@ -124,7 +113,6 @@ void CommandExecuter::handleNICK(Server *server, Client *client, const IRCMessag
 
 	std::string newNick = msg.getParams()[0];
 
-	// Validate nickname format (basic validation)
 	if (!Client::isValidNickname(newNick))
 	{
 		std::string currentNick = client->getNickname().empty() ? "*" : client->getNickname();
@@ -133,7 +121,6 @@ void CommandExecuter::handleNICK(Server *server, Client *client, const IRCMessag
 		return;
 	}
 
-	// Check if nickname is already in use
 	if (Client::isNicknameInUse(server, newNick, client->getClientFd()))
 	{
 		std::string currentNick = client->getNickname().empty() ? "*" : client->getNickname();
@@ -142,14 +129,11 @@ void CommandExecuter::handleNICK(Server *server, Client *client, const IRCMessag
 		return;
 	}
 
-	// Store old nickname for change notification
 	std::string oldNick = client->getNickname();
 
-	// Set the new nickname
 	client->setNickname(newNick);
 	std::cout << "Client " << client->getClientFd() << " set nickname to: " << newNick << std::endl;
 
-	// Send NICK confirmation (if client already had a nickname, this is a nickname change)
 	if (!oldNick.empty())
 	{
 		std::map<std::string, Channel *> &channels = server->getChannels();
@@ -197,7 +181,6 @@ void CommandExecuter::handleUSER(Server *server, Client *client, const IRCMessag
 
 	std::cout << "Client " << client->getClientFd() << " set username to: " << username << ", realname: " << realname << std::endl;
 
-	// Send welcome if client is now fully registered
 	if (client->isRegistered())
 	{
 		server->sendWelcome(client);
@@ -224,7 +207,6 @@ void CommandExecuter::handleQUIT(Server *server, Client *client, const IRCMessag
 	std::string quit_msg = msg.getTrailing().empty() ? "Client Quit" : msg.getTrailing();
 	std::cout << "Client " << client->getClientFd() << " is quitting: " << quit_msg << std::endl;
 
-	// TODO: Notify other clients in channels
 	if (!client->getNickname().empty())
 	{
 		std::map<std::string, Channel *> &channels = server->getChannels();
@@ -279,10 +261,8 @@ void CommandExecuter::handlePRIVMSG(Server *server, Client *client, const IRCMes
 	std::string target = msg.getParams()[0];
 	std::string message = msg.getTrailing();
 
-	// Create PRIVMSG format using IRCResponse
 	std::string privmsgFormat = IRCResponse::createPrivmsg(client->getNickname(), client->getUsername(), server->getHostname(), target, message);
 
-	// Check if target is a channel (starts with #)
 	if (target[0] == '#')
 	{
 		Channel *channel = server->getChannel(target);
@@ -300,12 +280,10 @@ void CommandExecuter::handlePRIVMSG(Server *server, Client *client, const IRCMes
 			return;
 		}
 
-		// Broadcast to all users in channel except sender
 		channel->broadcast(privmsgFormat, server, client->getClientFd());
 	}
 	else
 	{
-		// Private message to user
 		Client *targetClient = server->getClientByNickname(target);
 		if (!targetClient)
 		{
@@ -314,7 +292,6 @@ void CommandExecuter::handlePRIVMSG(Server *server, Client *client, const IRCMes
 			return;
 		}
 
-		// Send message to target user
 		targetClient->writeAndEnablePollOut(server, privmsgFormat);
 	}
 }

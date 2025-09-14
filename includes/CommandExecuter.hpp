@@ -24,38 +24,35 @@
 #include <iostream>
 #include <map>
 
-// Forward declarations to avoid circular dependencies
 class Server;
 class Client;
 class Channel;
 
-
 class CommandExecuter
 {
-    public:
-        // Main command dispatcher
-        static void executeCommand(Server* server, Client* client, const IRCMessage& msg);
+public:
+	// Main command dispatcher
+	static void executeCommand(Server *server, Client *client, const IRCMessage &msg);
 
-        // Authentication and registration commands
-        static void handlePASS(Server* server, Client* client, const IRCMessage& msg);
-        static void handleNICK(Server* server, Client* client, const IRCMessage& msg);
-        static void handleUSER(Server* server, Client* client, const IRCMessage& msg);
+	// Authentication and registration commands
+	static void handlePASS(Server *server, Client *client, const IRCMessage &msg);
+	static void handleNICK(Server *server, Client *client, const IRCMessage &msg);
+	static void handleUSER(Server *server, Client *client, const IRCMessage &msg);
 
-        // Communication commands
-        static void handlePRIVMSG(Server* server, Client* client, const IRCMessage& msg);
+	// Communication commands
+	static void handlePRIVMSG(Server *server, Client *client, const IRCMessage &msg);
 
-        // Server utility commands
-        static void handlePING(Server* server, Client* client, const IRCMessage& msg);
-        static void handleQUIT(Server* server, Client* client, const IRCMessage& msg);
+	// Server utility commands
+	static void handlePING(Server *server, Client *client, const IRCMessage &msg);
+	static void handleQUIT(Server *server, Client *client, const IRCMessage &msg);
 
-        // Helper functions
-        static bool validateBasicCommand(Server* server, Client* client, const IRCMessage& msg, const std::string& commandName);
+	// Helper functions
+	static bool validateBasicCommand(Server *server, Client *client, const IRCMessage &msg, const std::string &commandName);
 
-    private:
-        // Private constructor - this is a utility class with static methods only
-        CommandExecuter();
-        CommandExecuter(const CommandExecuter& other);
-        CommandExecuter& operator=(const CommandExecuter& other);
+private:
+	CommandExecuter();
+	CommandExecuter(const CommandExecuter &other);
+	CommandExecuter &operator=(const CommandExecuter &other);
 };
 
 #endif // COMMANDEXECUTER_HPP

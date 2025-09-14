@@ -38,6 +38,7 @@ class Server
 		std::string password;
 		std::string hostname;
 		sockaddr_in serverAddress;
+		std::string creationTime;
 		std::map<int, Client*> clients;
 		std::map<std::string, Channel*> channels;
 		std::vector<pollfd> poll_fds;
@@ -60,7 +61,7 @@ class Server
 		void addClient(int client_fd);
 		void removeClient(int client_fd);
 		void handleClientData(pollfd &clientPfd);
-		void sendToClient(int client_fd, const std::string &message);
+		void sendToClient(pollfd &clientPfd, Client *client);
 		void markClientForSending(int client_fd);
 
 		// Getters
