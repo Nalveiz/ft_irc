@@ -16,6 +16,7 @@ IRCMessage CommandParser::parseMessage(const std::string &message)
 {
 	IRCMessage msg;
 	std::string line = trim(message);
+	size_t pos = 0;
 
 	if (line.empty())
 	{
@@ -27,27 +28,6 @@ IRCMessage CommandParser::parseMessage(const std::string &message)
 	{
 		std::cout << "Warning: IRC message too long, truncating" << std::endl;
 		line = line.substr(0, 510);
-	}
-
-	size_t pos = 0;
-
-	if (line[0] == ':')
-	{
-		size_t space = line.find(' ');
-		if (space != std::string::npos && space > 1)
-		{
-			std::string prefix = line.substr(1, space - 1);
-			msg.setPrefix(prefix);
-			pos = space + 1;
-
-			while (pos < line.length() && line[pos] == ' ')
-				pos++;
-		}
-		else
-		{
-			std::cout << "Warning: Malformed prefix in IRC message" << std::endl;
-			return msg;
-		}
 	}
 
 	size_t trailing_pos = line.find(" :", pos);

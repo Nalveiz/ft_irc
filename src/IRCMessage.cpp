@@ -6,20 +6,34 @@
 /*   By: soksak <soksak@42istanbul.com.tr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/07 18:07:07 by soksak            #+#    #+#             */
-/*   Updated: 2025/09/14 23:18:23 by soksak           ###   ########.fr       */
+/*   Updated: 2025/09/15 02:17:33 by soksak           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../includes/IRCMessage.hpp"
 
-IRCMessage::IRCMessage() : prefix(""), command(""), params(), trailing("") {}
+IRCMessage::IRCMessage() : command(""), params(), trailing("") {}
 
 IRCMessage::~IRCMessage()
 {
 }
 
-const std::string &IRCMessage::getPrefix() const {
-	return prefix;
+IRCMessage::IRCMessage(const IRCMessage &other)
+{
+	this->command = other.command;
+	this->params = other.params;
+	this->trailing = other.trailing;
+}
+
+IRCMessage &IRCMessage::operator=(const IRCMessage &other)
+{
+	if (this != &other)
+	{
+		this->command = other.command;
+		this->params = other.params;
+		this->trailing = other.trailing;
+	}
+	return *this;
 }
 
 const std::string &IRCMessage::getCommand() const {
@@ -37,11 +51,6 @@ const std::vector<std::string> &IRCMessage::getParams() const {
 void IRCMessage::setCommand(const std::string &command)
 {
 	this->command = command;
-}
-
-void IRCMessage::setPrefix(const std::string &prefix)
-{
-	this->prefix = prefix;
 }
 
 void IRCMessage::setTrailing(const std::string &trailing)

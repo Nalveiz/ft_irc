@@ -202,7 +202,6 @@ void Server::handleClientData(pollfd &clientPfd)
 		removeClient(clientPfd.fd);
 		return;
 	}
-
 	buffer[bytes_read] = '\0';
 	std::cout << "Received from client " << clientPfd.fd << ": " << buffer << std::endl;
 

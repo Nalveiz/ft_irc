@@ -73,6 +73,7 @@ class Client
 
 	private:
 		Client(Client const &other);
+		Client &operator=(Client const &other);
 		void updateRegistrationStatus();
 };
 

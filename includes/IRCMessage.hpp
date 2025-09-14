@@ -6,7 +6,7 @@
 /*   By: soksak <soksak@42istanbul.com.tr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/07 18:07:23 by soksak            #+#    #+#             */
-/*   Updated: 2025/09/14 23:23:10 by soksak           ###   ########.fr       */
+/*   Updated: 2025/09/15 02:17:14 by soksak           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,12 +19,13 @@
 class IRCMessage
 {
 	private:
-		std::string prefix;
 		std::string command;
 		std::vector<std::string> params;
 		std::string trailing;
 	public:
 		IRCMessage();
+		IRCMessage(const IRCMessage &other);
+		IRCMessage &operator=(const IRCMessage &other);
 		~IRCMessage();
 
 		// Getters
