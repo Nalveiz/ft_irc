@@ -12,9 +12,14 @@
 
 #include "../includes/Server.hpp"
 
+bool Server::shouldStop = false;
+
 Server::Server(int &port, const std::string &password, const std::string &hostname) : port(port), password(password), hostname(hostname)
 {
 	std::cout << "Server initializing..." << std::endl;
+
+	signal(SIGINT, Server::signalHandler);
+
 	this->serverSocket = socket(AF_INET, SOCK_STREAM, 0);
 
 	if (this->serverSocket < 0)
@@ -56,13 +61,16 @@ void Server::bindAndListen()
 
 void Server::runServer()
 {
-	while (true)
+	while (!shouldStop)
 	{
 		int poll_count = poll(&poll_fds[0], poll_fds.size(), -1);
 
 		if (poll_count < 0)
 		{
-			std::cerr << "Poll error" << std::endl;
+			if (!shouldStop)
+			{
+				throw PollFailed();
+			}
 			break;
 		}
 
@@ -100,6 +108,11 @@ void Server::runServer()
 				}
 			}
 		}
+	}
+
+	if (shouldStop)
+	{
+		std::cout << "Shutdown signal received." << std::endl;
 	}
 }
 
@@ -369,4 +382,17 @@ const char *Server::SocketAcceptFailed::what() const throw()
 const char *Server::NonBlockingFailed::what() const throw()
 {
 	return "Setting non-blocking mode failed.";
+}
+
+const char *Server::PollFailed::what() const throw()
+{
+	return "Poll failed.";
+}
+
+void Server::signalHandler(int sig)
+{
+	if (sig == SIGINT)
+	{
+		shouldStop = true;
+	}
 }

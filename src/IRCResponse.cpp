@@ -6,7 +6,7 @@
 /*   By: soksak <soksak@42istanbul.com.tr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/14 23:18:17 by soksak            #+#    #+#             */
-/*   Updated: 2025/09/14 23:18:18 by soksak           ###   ########.fr       */
+/*   Updated: 2025/09/15 01:38:25 by soksak           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -190,7 +190,11 @@ std::string IRCResponse::createMyInfo(const std::string &nick, const std::string
 std::string IRCResponse::createISupport(const std::string &nick)
 {
 	std::ostringstream oss;
-	oss << ":server 005 " << nick << " CHANMODES=,,,itkl PREFIX=(o)@ CHANTYPES=# :are supported by this server\r\n";
+	oss << ":server 005 " << nick
+		<< " CHANTYPES=#"
+		<< " CHANMODES=,,,itklo"
+		<< " PREFIX=(o)@"
+		<< " :are supported by this server\r\n";
 	return oss.str();
 }
 

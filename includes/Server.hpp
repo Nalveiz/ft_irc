@@ -24,6 +24,7 @@
 #include <poll.h>
 #include "Client.hpp"
 #include <fcntl.h>
+#include <csignal>
 #include "IRCMessage.hpp"
 #include "CommandParser.hpp"
 #include "CommandExecuter.hpp"
@@ -43,6 +44,9 @@ class Server
 		std::map<std::string, Channel*> channels;
 		std::vector<pollfd> poll_fds;
 
+		// Signal handling
+		static bool shouldStop;
+
 		// Private copy constructor and assignment operator
 		Server(const Server &other);
 		Server &operator=(const Server &other);
@@ -55,6 +59,9 @@ class Server
 		// Main server methods
 		void bindAndListen();
 		void runServer();
+
+		// Signal handling
+		static void signalHandler(int sig);
 
 		// Client management
 		void setNonBlocking(int fd);
@@ -108,6 +115,12 @@ class Server
 		};
 
 		class NonBlockingFailed : public std::exception
+		{
+			public:
+				const char *what() const throw();
+		};
+		
+		class PollFailed : public std::exception
 		{
 			public:
 				const char *what() const throw();
