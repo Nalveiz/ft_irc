@@ -1,73 +1,277 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Server.cpp                                         :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: soksak <soksak@42istanbul.com.tr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/09/14 23:18:10 by soksak            #+#    #+#             */
+/*   Updated: 2025/09/14 23:18:10 by soksak           ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "../includes/Server.hpp"
 
-Server::Server(int &port) : port(port)
+bool Server::shouldStop = false;
+
+Server::Server(const std::string &portStr, const std::string &password, const std::string &hostname) : password(password), hostname(hostname)
 {
 	std::cout << "Server initializing..." << std::endl;
-	// Create a socket, first things first
-	this->serverSocket = socket(AF_INET, SOCK_STREAM, 0);
 
+	checkArgPort(portStr);
+	checkArgPassword(password);
+	creationTime = getCurrentTime();
+	signal(SIGINT, Server::signalHandler);
+	this->serverSocket = socket(AF_INET, SOCK_STREAM, 0);
 	if (this->serverSocket < 0)
+	{
+		throw SocketCreationFailed();
+	}
+
+	int opt = 1;
+	if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
 	{
 		throw SocketCreationFailed();
 	}
 	this->serverAddress.sin_family = AF_INET;
 	this->serverAddress.sin_port = htons(this->port);
 	this->serverAddress.sin_addr.s_addr = INADDR_ANY;
-	this->pfds[0].fd = this->serverSocket;
-	this->pfds[0].events = POLLIN;
-	this->nfds = 1; // Start with server.
+	setNonBlocking(this->serverSocket);
+
+	pollfd server_pollfd;
+	server_pollfd.fd = serverSocket;
+	server_pollfd.events = POLLIN;
+	server_pollfd.revents = 0;
+	poll_fds.push_back(server_pollfd);
 }
 
 void Server::bindAndListen()
 {
-	// Bind the socket to the address and port, this is important.
 	if (bind(this->serverSocket, (struct sockaddr *)&this->serverAddress, sizeof(this->serverAddress)) < 0)
 	{
 		throw SocketBindFailed();
 	}
-	// listen is gonna change this is the test..
-	if (listen(this->serverSocket, 5) < 0)
+	if (listen(this->serverSocket, SOMAXCONN) < 0)
 	{
 		throw SocketListenFailed();
 	}
 	std::cout << "Server is listening on port " << this->port << std::endl;
 }
 
-void Server::acceptConnection()
+void Server::runServer()
 {
-	while(1)
+	while (!shouldStop)
 	{
-		int pollCount = poll(this->pfds, this->nfds, -1);
-		if (pollCount < 0)
-		{
-			throw SocketAcceptFailed();
-		}
-		if (this->pfds[0].revents & POLLIN)
-		{
-			int clientSocket = accept(this->serverSocket, NULL, NULL);
-			if (clientSocket < 0)
-			{
-				throw SocketAcceptFailed();
-			}
-			if (this->nfds >= MAX_CLIENTS)
-			{
-				std::cout << "Max clients reached, rejecting connection." << std::endl;
-				close(clientSocket);
-				continue;
-			}
-			// Creating User Here
-			this->users.push_back(User(clientSocket));
+		int poll_count = poll(&poll_fds[0], poll_fds.size(), -1);
 
-			std::cout << "Client connected: " << clientSocket << std::endl;
-			this->pfds[this->nfds].fd = clientSocket;
-			this->pfds[this->nfds].events = POLLIN;
-			this->nfds++;
+		if (poll_count < 0)
+		{
+			if (!shouldStop)
+			{
+				throw PollFailed();
+			}
+			break;
+		}
+
+		for (size_t i = 0; i < poll_fds.size(); ++i)
+		{
+			if (poll_fds[i].revents & POLLIN)
+			{
+				if (poll_fds[i].fd == serverSocket)
+				{
+					int client_fd = accept(serverSocket, NULL, NULL);
+					if (client_fd >= 0)
+						addClient(client_fd);
+				}
+				else
+					handleClientData(poll_fds[i]);
+			}
+			if (poll_fds[i].revents & POLLOUT)
+			{
+				if (poll_fds[i].fd != serverSocket)
+				{
+					if (poll_fds[i].events & POLLOUT)
+					{
+						std::map<int, Client *>::iterator it = clients.find(poll_fds[i].fd);
+						if (it != clients.end())
+						{
+							Client *client = it->second;
+							std::string sendBuffer = client->getSendBuffer();
+							if (!sendBuffer.empty())
+							{
+								std::cout << "Sending to client " << client->getClientFd() << ": " << sendBuffer << std::endl;
+								sendToClient(poll_fds[i], client);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if (shouldStop)
+	{
+		std::cout << "Shutdown signal received." << std::endl;
+	}
+}
+
+void Server::setNonBlocking(int fd)
+{
+	if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1)
+	{
+		throw NonBlockingFailed();
+	}
+}
+
+void Server::addClient(int client_fd)
+{
+	try
+	{
+		setNonBlocking(client_fd);
+
+		Client *newClient = new Client(client_fd);
+		clients[client_fd] = newClient;
+
+		pollfd client_pollfd;
+		client_pollfd.fd = client_fd;
+		client_pollfd.events = POLLIN;
+		client_pollfd.revents = 0;
+		poll_fds.push_back(client_pollfd);
+
+		std::cout << "New client connected: " << client_fd << std::endl;
+	}
+	catch (const std::exception &e)
+	{
+		std::cerr << "Error adding client: " << client_fd << " - " << e.what() << '\n';
+		return;
+	}
+}
+
+void Server::removeClient(int client_fd)
+{
+	std::vector<std::string> channelsToRemove;
+
+	for (std::map<std::string, Channel *>::iterator it = channels.begin(); it != channels.end(); ++it)
+	{
+		Channel *channel = it->second;
+		if (channel && channel->isUserInChannel(client_fd))
+		{
+			channel->removeUser(client_fd);
+			if (channel->isChannelEmpty())
+			{
+				channelsToRemove.push_back(channel->getName());
+			}
+		}
+	}
+
+	for (size_t i = 0; i < channelsToRemove.size(); ++i)
+	{
+		removeChannel(channelsToRemove[i]);
+	}
+
+	std::cout << "Removing client: " << client_fd << std::endl;
+
+	std::map<int, Client *>::iterator it = clients.find(client_fd);
+	if (it != clients.end())
+	{
+		delete it->second;
+		clients.erase(it);
+	}
+
+	for (std::vector<pollfd>::iterator it = poll_fds.begin(); it != poll_fds.end(); ++it)
+	{
+		if (it->fd == client_fd)
+		{
+			poll_fds.erase(it);
+			break;
+		}
+	}
+
+	close(client_fd);
+	std::cout << "Client disconnected: " << client_fd << std::endl;
+}
+
+void Server::handleClientData(pollfd &clientPfd)
+{
+	char buffer[4096];
+	std::map<int, Client *>::iterator it = clients.find(clientPfd.fd);
+	if (it == clients.end())
+		return;
+
+	size_t bytes_read = recv(clientPfd.fd, buffer, sizeof(buffer) - 1, 0);
+
+	if (bytes_read <= 0)
+	{
+		CommandExecuter::handleDisconnection(this, it->second, "Disconnected.");
+		return;
+	}
+
+	buffer[bytes_read] = '\0';
+	it->second->appendToReadBuffer(std::string(buffer));
+	std::cout << "Received from client " << clientPfd.fd << ": " << buffer << std::endl;
+
+	it = clients.find(clientPfd.fd);
+	if (it == clients.end())
+		return;
+
+	Client *client = it->second;
+	std::string &readBuffer = client->getReadBuffer();
+	size_t pos;
+
+	while ((pos = readBuffer.find("\r\n")) != std::string::npos)
+	{
+		std::string message = readBuffer.substr(0, pos);
+		readBuffer.erase(0, pos + 2);
+
+		if (!message.empty())
+		{
+			IRCMessage ircMsg = CommandParser::parseMessage(message);
+			CommandExecuter::executeCommand(this, client, ircMsg);
+			if (clients.find(clientPfd.fd) == clients.end())
+				return;
+		}
+	}
+}
+
+
+void Server::sendToClient(pollfd &clientPfd, Client *client)
+{
+	int bytes_sent = send(clientPfd.fd, client->getSendBuffer().c_str(), client->getSendBuffer().length(), 0);
+	if (bytes_sent > 0)
+	{
+		client->getSendBuffer().erase(0, bytes_sent);
+		if (client->getSendBuffer().empty())
+			clientPfd.events &= ~POLLOUT;
+	}
+}
+
+void Server::markClientForSending(int client_fd)
+{
+	for (size_t i = 0; i < poll_fds.size(); ++i)
+	{
+		if (poll_fds[i].fd == client_fd)
+		{
+			if (!(poll_fds[i].events & POLLOUT))
+				poll_fds[i].events |= POLLOUT;
+			break;
 		}
 	}
 }
 
 Server::~Server()
 {
+	for (std::map<std::string, Channel *>::iterator it = channels.begin(); it != channels.end(); ++it)
+	{
+		delete it->second;
+	}
+	channels.clear();
+
+	for (std::map<int, Client *>::iterator it = clients.begin(); it != clients.end(); ++it)
+	{
+		delete it->second;
+	}
+	clients.clear();
+
 	close(this->serverSocket);
 	std::cout << "Server socket closed." << std::endl;
 }
@@ -80,6 +284,85 @@ int Server::getServerSocket() const
 int Server::getPort() const
 {
 	return this->port;
+}
+
+const std::string &Server::getPassword() const
+{
+	return this->password;
+}
+
+const std::string &Server::getHostname() const
+{
+	return this->hostname;
+}
+
+std::map<int, Client *> &Server::getClients()
+{
+	return this->clients;
+}
+
+std::map<std::string, Channel *> &Server::getChannels()
+{
+	return this->channels;
+}
+
+Channel *Server::createChannel(const std::string &name)
+{
+	if (channels.find(name) != channels.end())
+		return channels[name];
+
+	Channel *newChannel = new Channel(name);
+	channels[name] = newChannel;
+	std::cout << "Channel " << name << " created" << std::endl;
+	return newChannel;
+}
+
+Channel *Server::getChannel(const std::string &name)
+{
+	std::map<std::string, Channel *>::iterator it = channels.find(name);
+	if (it != channels.end())
+		return it->second;
+	return NULL;
+}
+
+void Server::removeChannel(const std::string &name)
+{
+	std::map<std::string, Channel *>::iterator it = channels.find(name);
+	if (it != channels.end())
+	{
+		delete it->second;
+		channels.erase(it);
+		std::cout << "Channel " << name << " removed" << std::endl;
+	}
+}
+
+Client *Server::getClientByNickname(const std::string &nickname)
+{
+	for (std::map<int, Client *>::iterator it = clients.begin(); it != clients.end(); ++it)
+	{
+		if (it->second->getNickname() == nickname)
+			return it->second;
+	}
+	return NULL;
+}
+
+std::string Server::getCurrentTime()
+{
+	time_t now = time(NULL);
+	char buf[64];
+	strftime(buf, sizeof(buf), "%c", localtime(&now));
+	return std::string(buf);
+}
+
+void Server::sendWelcome(Client *client)
+{
+	client->writeAndEnablePollOut(this, IRCResponse::createWelcome(client->getNickname(), client->getUsername(), hostname));
+	client->writeAndEnablePollOut(this, IRCResponse::createYourHost(client->getNickname(), hostname));
+	client->writeAndEnablePollOut(this, IRCResponse::createCreated(client->getNickname(), creationTime));
+	client->writeAndEnablePollOut(this, IRCResponse::createMyInfo(client->getNickname(), hostname));
+	client->writeAndEnablePollOut(this, IRCResponse::createISupport(client->getNickname()));
+
+	std::cout << "Sent welcome messages to " << client->getNickname() << std::endl;
 }
 
 const char *Server::SocketCreationFailed::what() const throw()
@@ -100,4 +383,76 @@ const char *Server::SocketListenFailed::what() const throw()
 const char *Server::SocketAcceptFailed::what() const throw()
 {
 	return "Socket accept failed.";
+}
+
+const char *Server::NonBlockingFailed::what() const throw()
+{
+	return "Setting non-blocking mode failed.";
+}
+
+const char *Server::PollFailed::what() const throw()
+{
+	return "Poll failed.";
+}
+
+const char *Server::InvalidPortNumber::what() const throw()
+{
+	return "Invalid port number. Port must be a number between 1024 and 65535.";
+}
+
+const char *Server::InvalidPassword::what() const throw()
+{
+	return "Invalid password. Password cannot be empty and must contain only valid characters.";
+}
+
+void Server::checkArgPort(const std::string &portStr)
+{
+	if (portStr.empty())
+	{
+		throw InvalidPortNumber();
+	}
+
+	for (size_t i = 0; i < portStr.length(); ++i)
+	{
+		if (!std::isdigit(portStr[i]))
+		{
+			throw InvalidPortNumber();
+		}
+	}
+
+	std::stringstream ss(portStr);
+	int portNum;
+	ss >> portNum;
+
+	if (portNum < 1024 || portNum > 65535)
+	{
+		throw InvalidPortNumber();
+	}
+
+	this->port = portNum;
+}
+
+void Server::checkArgPassword(const std::string &password)
+{
+	if (password.empty())
+	{
+		throw InvalidPassword();
+	}
+
+	for (size_t i = 0; i < password.length(); ++i)
+	{
+		char c = password[i];
+		if (!std::isprint(c) || std::isspace(c))
+		{
+			throw InvalidPassword();
+		}
+	}
+}
+
+void Server::signalHandler(int sig)
+{
+	if (sig == SIGINT)
+	{
+		shouldStop = true;
+	}
 }

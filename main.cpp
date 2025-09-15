@@ -11,51 +11,20 @@
 /* ************************************************************************** */
 
 #include "includes/Server.hpp"
-#include <sstream>
-
-int checkPort(const std::string &portStr)
-{
-	int port;
-	std::string castedString(portStr);
-
-	// Check if the port is a valid integer and within the range
-	if (castedString.empty())
-	{
-		throw std::invalid_argument("Port cannot be empty.");
-	}
-
-	for (size_t i = 0; i < castedString.length(); ++i)
-	{
-		if (!isdigit(castedString[i]))
-		{
-			throw std::invalid_argument("Port must be a number.");
-		}
-	}
-
-	// Hmm, now here i need to convert to int.
-	std::stringstream ss(portStr);
-	ss >> port;
-	if (port < 1024 || port > 65535)
-	{
-		throw std::out_of_range("Port must be between 1024 and 65535.");
-	}
-	return port;
-}
 
 int main(int argc, char *argv[])
 {
-	if (argc != 2)
+	if (argc != 3)
 	{
-		std::cerr << "Usage: " << argv[0] << " <port>" << std::endl;
+		std::cerr << "Usage: " << argv[0] << " <port> <password>" << std::endl;
 		return 1;
 	}
 
 	try
 	{
-		int port = checkPort(argv[1]);
-		Server server(port);
+		Server server(argv[1], argv[2], "localhost");
 		server.bindAndListen();
-		server.acceptConnection();
+		server.runServer();
 	}
 	catch (const std::exception &e)
 	{
