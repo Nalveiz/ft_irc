@@ -45,6 +45,7 @@ public:
 	// Server utility commands
 	static void handlePING(Server *server, Client *client, const IRCMessage &msg);
 	static void handleQUIT(Server *server, Client *client, const IRCMessage &msg);
+	static void handleDisconnection(Server *server, Client *client, const std::string message);
 
 	// Helper functions
 	static bool validateBasicCommand(Server *server, Client *client, const IRCMessage &msg, const std::string &commandName);

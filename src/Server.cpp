@@ -194,17 +194,18 @@ void Server::removeClient(int client_fd)
 void Server::handleClientData(pollfd &clientPfd)
 {
 	char buffer[4096];
+	std::map<int, Client *>::iterator it = clients.find(clientPfd.fd);
 	ssize_t bytes_read = recv(clientPfd.fd, buffer, sizeof(buffer) - 1, 0);
 
 	if (bytes_read <= 0)
 	{
-		removeClient(clientPfd.fd);
+		if (it != clients.end())
+			CommandExecuter::handleDisconnection(this, it->second, "Disconnected.");
 		return;
 	}
 	buffer[bytes_read] = '\0';
 	std::cout << "Received from client " << clientPfd.fd << ": " << buffer << std::endl;
 
-	std::map<int, Client *>::iterator it = clients.find(clientPfd.fd);
 	if (it != clients.end())
 	{
 		Client *client = it->second;

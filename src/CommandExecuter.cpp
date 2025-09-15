@@ -6,7 +6,7 @@
 /*   By: soksak <soksak@42istanbul.com.tr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/07 19:25:45 by soksak            #+#    #+#             */
-/*   Updated: 2025/09/15 01:06:37 by soksak           ###   ########.fr       */
+/*   Updated: 2025/09/15 15:32:11 by soksak           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -200,6 +200,24 @@ void CommandExecuter::handlePING(Server *server, Client *client, const IRCMessag
 	}
 	client->writeAndEnablePollOut(server,
 		IRCResponse::createPong(server->getHostname(), msg.getParams()[0]));
+}
+
+void CommandExecuter::handleDisconnection(Server *server, Client *client, const std::string message)
+{
+	if (!client->getNickname().empty())
+	{
+		std::map<std::string, Channel *> &channels = server->getChannels();
+		for (std::map<std::string, Channel *>::iterator it = channels.begin(); it != channels.end(); ++it)
+		{
+			Channel *channel = it->second;
+			if (channel && channel->isUserInChannel(client->getClientFd()))
+			{
+				channel->broadcast(IRCResponse::createQUIT(client->getNickname(), client->getUsername(),
+					server->getHostname(), message), server, -1);
+			}
+		}
+	}
+	server->removeClient(client->getClientFd());
 }
 
 void CommandExecuter::handleQUIT(Server *server, Client *client, const IRCMessage &msg)
