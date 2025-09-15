@@ -195,37 +195,44 @@ void Server::handleClientData(pollfd &clientPfd)
 {
 	char buffer[4096];
 	std::map<int, Client *>::iterator it = clients.find(clientPfd.fd);
+	if (it == clients.end())
+		return;
+
 	ssize_t bytes_read = recv(clientPfd.fd, buffer, sizeof(buffer) - 1, 0);
 
 	if (bytes_read <= 0)
 	{
-		if (it != clients.end())
-			CommandExecuter::handleDisconnection(this, it->second, "Disconnected.");
+		CommandExecuter::handleDisconnection(this, it->second, "Disconnected.");
 		return;
 	}
+
 	buffer[bytes_read] = '\0';
+	it->second->appendToReadBuffer(std::string(buffer));
 	std::cout << "Received from client " << clientPfd.fd << ": " << buffer << std::endl;
 
-	if (it != clients.end())
+	it = clients.find(clientPfd.fd);
+	if (it == clients.end())
+		return;
+
+	Client *client = it->second;
+	std::string &readBuffer = client->getReadBuffer();
+	size_t pos;
+
+	while ((pos = readBuffer.find("\r\n")) != std::string::npos)
 	{
-		Client *client = it->second;
-		client->appendToReadBuffer(std::string(buffer));
-		std::string &readBuffer = client->getReadBuffer();
-		size_t pos = 0;
+		std::string message = readBuffer.substr(0, pos);
+		readBuffer.erase(0, pos + 2);
 
-		while ((pos = readBuffer.find("\r\n")) != std::string::npos)
+		if (!message.empty())
 		{
-			std::string message = readBuffer.substr(0, pos);
-			readBuffer.erase(0, pos + 2);
-
-			if (!message.empty())
-			{
-				IRCMessage ircMsg = CommandParser::parseMessage(message);
-				CommandExecuter::executeCommand(this, client, ircMsg);
-			}
+			IRCMessage ircMsg = CommandParser::parseMessage(message);
+			CommandExecuter::executeCommand(this, client, ircMsg);
+			if (clients.find(clientPfd.fd) == clients.end())
+				return;
 		}
 	}
 }
+
 
 void Server::sendToClient(pollfd &clientPfd, Client *client)
 {
