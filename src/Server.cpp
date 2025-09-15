@@ -198,7 +198,7 @@ void Server::handleClientData(pollfd &clientPfd)
 	if (it == clients.end())
 		return;
 
-	ssize_t bytes_read = recv(clientPfd.fd, buffer, sizeof(buffer) - 1, 0);
+	size_t bytes_read = recv(clientPfd.fd, buffer, sizeof(buffer) - 1, 0);
 
 	if (bytes_read <= 0)
 	{
